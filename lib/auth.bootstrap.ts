@@ -1,5 +1,6 @@
 import { Auth, Role } from "./auth";
 import type { AppUser } from "./app-user";
+import { redirect } from "next/navigation";
 
 Auth.extend<AppUser>("web", {
     driver: "localStorage",
@@ -18,7 +19,7 @@ Auth.extend<AppUser>("web", {
     events: {
         onLogin: (user) => {
             console.log(`[Auth] Logged in as ${user.email}`);
-            
+            redirect("/dashboard")
         },
         onLogout: () => {
             console.log("[Auth] Logged out");

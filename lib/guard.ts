@@ -3,6 +3,7 @@ import { resolveDriver, ITokenDriver } from "./token-storage";
 import { JwtUtils } from "./jwt-utils";
 import { HTTPS, HttpError, type HttpClient } from "./http";
 import { Role } from "./role";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 export class Guard<TUser extends AuthUser = AuthUser> {
     private readonly http: HttpClient;
@@ -126,11 +127,14 @@ export class Guard<TUser extends AuthUser = AuthUser> {
     public async attempt(credentials: Credentials): Promise<boolean> {
         try {
             const res = await this.http.post<LoginResponse>(this.cfg.endpoints.login, credentials);
-            console.log({attemp_res: res.data, url: this.cfg.endpoints.login})
+            // console.log({attemp_res: res.data, url: this.cfg.endpoints.login})
             if (!res.data?.token) return false;
             await this._applyLogin(res.data);
             return true;
         } catch (err) {
+            if (isRedirectError(err)) {
+                throw err; // Let Next.js handle the redirect
+            }
             this.cfg.events.onError?.(err);
             return false;
         }
