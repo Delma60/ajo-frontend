@@ -41,10 +41,10 @@ export default function Login() {
   const passwordField = register("password");
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex w-full">
       {/* ── Left panel: branding ── */}
       <div
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+        className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-between p-12 xl:p-20 relative overflow-hidden"
         style={{ background: "linear-gradient(145deg, #064e3b 0%, #065f46 45%, #047857 100%)" }}
       >
         <div
@@ -59,98 +59,99 @@ export default function Login() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-400/20 border border-emerald-400/30 flex items-center justify-center">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <div className="w-12 h-12 rounded-xl bg-emerald-400/20 border border-emerald-400/30 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm1 8h-2v-5l4 2.5-2 1.15V14z" fill="#34d399" />
               </svg>
             </div>
-            <span className="text-white font-semibold text-lg" style={{ fontFamily: "'Georgia', serif" }}>
+            <span className="text-white font-semibold text-xl" style={{ fontFamily: "'Georgia', serif" }}>
               AjoSave
             </span>
           </div>
         </div>
 
         {/* Hero */}
-        <div className="relative z-10 space-y-6">
-          <div className="flex gap-3 mb-8">
+        <div className="relative z-10 space-y-8">
+          <div className="flex gap-4 mb-10">
             {["Adaeze", "Emeka", "Fatima", "Chidi"].map((name, i) => (
               <div key={name} className="flex flex-col items-center gap-2">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white border-2 border-emerald-400/40"
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-base font-bold text-white border-2 border-emerald-400/40"
                   style={{
                     background: `hsl(${160 + i * 15}, 60%, ${35 + i * 5}%)`,
-                    boxShadow: i === 2 ? "0 0 0 3px rgba(52,211,153,0.5)" : "none",
+                    boxShadow: i === 2 ? "0 0 0 4px rgba(52,211,153,0.3)" : "none",
                   }}
                 >
                   {name[0]}
                 </div>
-                <span className="text-emerald-200/60 text-[10px] font-medium">{name}</span>
+                <span className="text-emerald-200/60 text-xs font-medium">{name}</span>
               </div>
             ))}
           </div>
 
           <div>
             <h1
-              className="text-4xl font-bold text-white leading-tight mb-4"
+              className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-6"
               style={{ fontFamily: "'Georgia', serif" }}
             >
               Save together,<br />
               <span className="text-emerald-300">grow together.</span>
             </h1>
-            <p className="text-emerald-100/70 text-base leading-relaxed max-w-xs">
+            <p className="text-emerald-100/80 text-lg leading-relaxed max-w-md">
               Join your community&apos;s rotating savings circle. Transparent, trusted, and on time — every cycle.
             </p>
           </div>
 
-          <div className="flex gap-6 pt-4">
+          <div className="flex gap-10 pt-6">
             {[
               { label: "Active circles", value: "2,400+" },
               { label: "Paid out", value: "₦1.2B" },
               { label: "Members", value: "18,000" },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="text-white font-bold text-lg">{stat.value}</div>
-                <div className="text-emerald-200/50 text-xs mt-0.5">{stat.label}</div>
+                <div className="text-white font-bold text-2xl">{stat.value}</div>
+                <div className="text-emerald-200/60 text-sm mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative z-10">
-          <blockquote className="text-emerald-100/50 text-sm italic border-l-2 border-emerald-400/30 pl-4">
+          <blockquote className="text-emerald-100/60 text-base italic border-l-2 border-emerald-400/30 pl-5">
             &ldquo;Ajo saved me when the bank wouldn&apos;t.&rdquo; — Ngozi, Lagos
           </blockquote>
         </div>
       </div>
 
       {/* ── Right panel: form ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-zinc-50 dark:bg-zinc-950">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 md:p-16 lg:p-24 bg-white dark:bg-zinc-950">
+        
         {/* Mobile logo */}
-        <div className="lg:hidden mb-8 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-800 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <div className="lg:hidden mb-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm1 8h-2v-5l4 2.5-2 1.15V14z" fill="white" />
             </svg>
           </div>
-          <span className="font-bold text-zinc-900 dark:text-white text-lg" style={{ fontFamily: "'Georgia', serif" }}>
+          <span className="font-bold text-zinc-900 dark:text-white text-xl" style={{ fontFamily: "'Georgia', serif" }}>
             AjoSave
           </span>
         </div>
 
-        <div className="w-full max-w-sm">
-          <div className="mb-8">
+        <div className="w-full max-w-[420px]">
+          <div className="mb-10">
             <h2
-              className="text-2xl font-bold text-zinc-900 dark:text-white mb-2"
+              className="text-3xl font-bold text-zinc-900 dark:text-white mb-3"
               style={{ fontFamily: "'Georgia', serif" }}
             >
               Welcome back
             </h2>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+            <p className="text-zinc-500 dark:text-zinc-400 text-base">
               Sign in to manage your circles and contributions.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <Input
               label="Email address"
               type="email"
@@ -159,46 +160,48 @@ export default function Login() {
               {...emailField}
             />
 
-            <div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-zinc-900 dark:text-white">
+                  Password
+                </label>
+                <a
+                  href="/forgot-password"
+                  className="text-sm text-emerald-700 hover:text-emerald-600 hover:underline transition-colors"
+                >
+                  Forgot password?
+                </a>
+              </div>
               <Input
-                label="Password"
                 type="password"
                 placeholder="••••••••"
                 autoComplete="current-password"
                 {...passwordField}
               />
-              <div className="mt-1.5 text-right">
-                <a
-                  href="/forgot-password"
-                  className="text-xs text-emerald-700 hover:text-emerald-600 hover:underline transition-colors"
-                >
-                  Forgot password?
-                </a>
-              </div>
             </div>
 
             <Button
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full rounded-xl"
+              className="w-full rounded-xl mt-4"
               loading={isSubmitting}
             >
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
 
-          <div className="relative my-6 flex items-center">
+          <div className="relative my-8 flex items-center">
             <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
-            <span className="mx-3 text-xs text-zinc-400">or continue with</span>
+            <span className="mx-4 text-sm text-zinc-400">or continue with</span>
             <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
           </div>
 
           <button
             type="button"
-            className="w-full h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-sm font-medium flex items-center justify-center gap-2.5 hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all"
+            className="w-full h-12 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-base font-medium flex items-center justify-center gap-3 hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -207,7 +210,7 @@ export default function Login() {
             Continue with Google
           </button>
 
-          <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-8 text-center text-base text-zinc-500 dark:text-zinc-400">
             Don&apos;t have an account?{" "}
             <a
               href="/register"
