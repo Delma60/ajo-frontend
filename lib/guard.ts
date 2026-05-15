@@ -126,7 +126,7 @@ export class Guard<TUser extends AuthUser = AuthUser> {
     public async attempt(credentials: Credentials): Promise<boolean> {
         try {
             const res = await this.http.post<LoginResponse>(this.cfg.endpoints.login, credentials);
-            console.log(res)
+            console.log({attemp_res: res.data, url: this.cfg.endpoints.login})
             if (!res.data?.token) return false;
             await this._applyLogin(res.data);
             return true;

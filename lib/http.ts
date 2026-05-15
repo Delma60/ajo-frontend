@@ -239,7 +239,7 @@ export class HttpClient {
         }
 
         const message = typeof result.message === "string" ? result.message : "Request successful.";
-        return this.formatResponse<T>(result as T, message, response.status);
+        return this.formatResponse<T>(result.data as T, message, response.status);
     }
 
     // ── Utilities ──────────────────────────────────────────────────────────

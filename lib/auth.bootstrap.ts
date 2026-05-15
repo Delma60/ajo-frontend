@@ -2,9 +2,9 @@ import { Auth, Role } from "./auth";
 import type { AppUser } from "./app-user";
 
 Auth.extend<AppUser>("web", {
-    driver: "cookie",
+    driver: "localStorage",
     endpoints: {
-        login: "/auth/login",
+        login: "/auth/token-login",
         logout: "/auth/logout",
         user: "/auth/me",
         refresh: "/auth/refresh",
@@ -18,6 +18,7 @@ Auth.extend<AppUser>("web", {
     events: {
         onLogin: (user) => {
             console.log(`[Auth] Logged in as ${user.email}`);
+            
         },
         onLogout: () => {
             console.log("[Auth] Logged out");
