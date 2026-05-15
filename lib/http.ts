@@ -204,6 +204,7 @@ export class HttpClient {
             }
 
             const response = await fetch(url, init);
+            console.log(response)
 
             // Run response interceptors (e.g. global 401/419 handling)
             for (const interceptor of this.config.responseInterceptors) {
@@ -213,6 +214,7 @@ export class HttpClient {
             return this.parseResponse<T>(response);
 
         } catch (error: unknown) {
+            console.error(error)
             if (error instanceof DOMException && error.name === "AbortError") {
                 return this.formatResponse<T>(null, "Request was cancelled.", 499);
             }
@@ -289,7 +291,7 @@ export class HttpClient {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const HTTPS = new HttpClient({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
     timeoutMs: 15_000,
     retry: {
         maxAttempts: 2,

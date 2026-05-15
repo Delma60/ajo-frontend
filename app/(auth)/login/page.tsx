@@ -6,7 +6,7 @@ const Login = () => {
 
   return (
     <div>
-      <button className="" onClick={() => {
+      <button className="bg-green-400 rounded p-4" onClick={() => {
         Auth.attempt({ email: '', password: '' })
       }}>
         login

@@ -126,6 +126,7 @@ export class Guard<TUser extends AuthUser = AuthUser> {
     public async attempt(credentials: Credentials): Promise<boolean> {
         try {
             const res = await this.http.post<LoginResponse>(this.cfg.endpoints.login, credentials);
+            console.log(res)
             if (!res.data?.token) return false;
             await this._applyLogin(res.data);
             return true;
@@ -216,6 +217,7 @@ export class Guard<TUser extends AuthUser = AuthUser> {
         }
     }
     private async _applyLogin(loginData: LoginResponse): Promise<void> {
+        console.log({loginData})
         this.setToken(loginData.token, loginData.expires_in);
         if (loginData.refresh_token) this.setRefreshToken(loginData.refresh_token);
         if (loginData.user) {
