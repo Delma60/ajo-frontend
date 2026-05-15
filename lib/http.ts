@@ -204,7 +204,6 @@ export class HttpClient {
             }
 
             const response = await fetch(url, init);
-            console.log(response)
 
             // Run response interceptors (e.g. global 401/419 handling)
             for (const interceptor of this.config.responseInterceptors) {
@@ -292,7 +291,7 @@ export class HttpClient {
 
 export const HTTPS = new HttpClient({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
-    timeoutMs: 15_000,
+    // timeoutMs: 600000,
     retry: {
         maxAttempts: 2,
         baseDelayMs: 300,

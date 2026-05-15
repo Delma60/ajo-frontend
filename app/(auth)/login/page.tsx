@@ -1,18 +1,27 @@
-'use client'
-import { Auth } from '@/lib/auth'
-import React from 'react'
+"use client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Auth } from "@/lib/auth";
+import React from "react";
 
 const Login = () => {
-
   return (
     <div>
-      <button className="bg-green-400 rounded p-4" onClick={() => {
-        Auth.attempt({ email: '', password: '' })
-      }}>
-        login
-      </button>
-    </div>
-  )
-}
+      <Card>
+        <CardContent>
+        <Button
+          variant={"secondary"}
+          onClick={() => {
+            Auth.attempt({ email: "", password: "" });
+          }}
+        >
+          login
+        </Button>
 
-export default Login
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Login;
