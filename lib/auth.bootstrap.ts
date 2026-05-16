@@ -3,7 +3,7 @@ import type { AppUser } from "./app-user";
 import { redirect } from "next/navigation";
 
 Auth.extend<AppUser>("web", {
-    driver: "localStorage",
+    driver: "cookie",
     endpoints: {
         login: "/auth/token-login",
         logout: "/auth/logout",
@@ -14,12 +14,12 @@ Auth.extend<AppUser>("web", {
     refreshTokenKey: "auth_refresh",
     tokenType: "Bearer",
     autoRefresh: true,
-    refreshThresholdSeconds: 120,
+    refreshThresholdSeconds: 1200,
     roleFactory: (user) => new Role(user.roles, user.permissions),
     events: {
         onLogin: (user) => {
             console.log(`[Auth] Logged in as ${user.email}`);
-            redirect("/dashboard")
+            window.location.href = "/dashboard";
         },
         onLogout: () => {
             console.log("[Auth] Logged out");
