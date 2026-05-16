@@ -74,6 +74,7 @@ export class Guard<TUser extends AuthUser = AuthUser> {
                 this._fetchUserPromise = null;
             });
         }
+            console.log("promised user")
         return this._fetchUserPromise;
     }
     public async refreshUser(): Promise<TUser | null> {
@@ -113,10 +114,11 @@ export class Guard<TUser extends AuthUser = AuthUser> {
             await this._maybeRefreshToken();
             const t = this.token();
             if (!t) return null;
-            const res = await this.http.withToken(t, this.cfg.tokenType).get<TUser>(this.cfg.endpoints.user);
+            const res = await this.http.withToken(t, this.cfg.tokenType).get<{ user:TUser }>(this.cfg.endpoints.user);
+            console.log(res)
             if (res.data) {
-                this._setUser(res.data)
-                this.cfg.events.onUserRefreshed?.(res.data);
+                this._setUser(res.data.user)
+                this.cfg.events.onUserRefreshed?.(res.data.user);
             }
             return this._user;
         } catch (err) {

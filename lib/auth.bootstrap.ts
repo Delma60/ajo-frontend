@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 Auth.extend<AppUser>("web", {
     driver: "cookie",
+    
     endpoints: {
         login: "/auth/token-login",
         logout: "/auth/logout",
