@@ -25,7 +25,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await Auth.user()
+  const user = await Auth.user();
   return (
     <SidebarProvider defaultOpen persist>
       <SidebarLayout>
@@ -79,9 +79,7 @@ export default async function DashboardLayout({
           <header className="flex h-16 items-center px-6 md:hidden">
             <SidebarTrigger variant="mobile" />
           </header>
-          <div className="p-6">
-            {children}
-          </div>
+          <div className="">{children}</div>
         </SidebarContent>
       </SidebarLayout>
     </SidebarProvider>

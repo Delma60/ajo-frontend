@@ -291,7 +291,7 @@ export class HttpClient {
 
 export const HTTPS = new HttpClient({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
-    // timeoutMs: 600000,
+    timeoutMs: 60_000,
     retry: {
         maxAttempts: 2,
         baseDelayMs: 300,
