@@ -8,13 +8,140 @@ import {
   useId,
   useRef,
   useState,
+  useCallback,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { useSidebar } from './providers/sidebar'
+// import { useSidebar } from './providers/sideb
+
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type SidebarSide = 'left' | 'right'
+export type SidebarVariant = 'sidebar' | 'floating' | 'inset'
+
+interface SidebarContextValue {
+  /** Whether the sidebar is fully expanded */
+  open: boolean
+  /** Whether the mobile drawer is open */
+  mobileOpen: boolean
+  /** Programmatically toggle expanded state */
+  toggle: () => void
+  /** Programmatically open */
+  setOpen: (v: boolean) => void
+  /** Toggle mobile drawer */
+  toggleMobile: () => void
+  /** Close mobile drawer */
+  closeMobile: () => void
+  /** Current side */
+  side: SidebarSide
+  /** Whether sidebar is in "rail" (icon-only) mode */
+  isRail: boolean
+  /** Toggle rail mode */
+  toggleRail: () => void
+}
+
+// ─── Context ──────────────────────────────────────────────────────────────────
+
+const SidebarContext = createContext<SidebarContextValue | null>(null)
+
+export function useSidebar(): SidebarContextValue {
+  const ctx = useContext(SidebarContext)
+  if (!ctx) throw new Error('useSidebar must be used inside <SidebarProvider>')
+  return ctx
+}
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export interface SidebarProviderProps {
+  children: ReactNode
+  /** Default open state (default: true) */
+  defaultOpen?: boolean
+  /** Which side the sidebar sits on */
+  side?: SidebarSide
+  /**
+   * Keyboard shortcut that toggles the sidebar.
+   * Pass false to disable. Default: 'b' (Ctrl/Cmd + B)
+   */
+  shortcut?: string | false
+  /** Persist open state to localStorage */
+  persist?: boolean
+  /** Storage key when persist=true */
+  storageKey?: string
+}
+
+const STORAGE_KEY = 'sidebar:open'
+
+export function SidebarProvider({
+  children,
+  defaultOpen = true,
+  side = 'left',
+  shortcut = 'b',
+  persist = true,
+  storageKey = STORAGE_KEY,
+}: SidebarProviderProps) {
+  // Resolve initial open from localStorage if persist is on
+  const resolveInitial = (): boolean => {
+    if (!persist || typeof window === 'undefined') return defaultOpen
+    try {
+      const stored = localStorage.getItem(storageKey)
+      return stored !== null ? stored === 'true' : defaultOpen
+    } catch {
+      return defaultOpen
+    }
+  }
+
+  const [open, setOpenState] = useState<boolean>(resolveInitial)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [isRail, setIsRail] = useState(false)
+
+  const setOpen = useCallback(
+    (v: boolean) => {
+      setOpenState(v)
+      if (persist) {
+        try { localStorage.setItem(storageKey, String(v)) } catch { /* noop */ }
+      }
+    },
+    [persist, storageKey]
+  )
+
+  const toggle = useCallback(() => setOpen(!open), [open, setOpen])
+  const toggleMobile = useCallback(() => setMobileOpen(p => !p), [])
+  const closeMobile = useCallback(() => setMobileOpen(false), [])
+  const toggleRail = useCallback(() => setIsRail(p => !p), [])
+
+  // Keyboard shortcut
+  useEffect(() => {
+    if (!shortcut) return
+    const handler = (e: globalThis.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === shortcut) {
+        e.preventDefault()
+        toggle()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [shortcut, toggle])
+
+  // Close mobile on resize to desktop
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const handler = (e: MediaQueryListEvent) => { if (e.matches) closeMobile() }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [closeMobile])
+
+  return (
+    <SidebarContext.Provider
+      value={{ open, mobileOpen, toggle, setOpen, toggleMobile, closeMobile, side, isRail, toggleRail }}
+    >
+      {children}
+    </SidebarContext.Provider>
+  )
+}
 
 // ─── Internal group context (for collapsible groups) ──────────────────────────
 
