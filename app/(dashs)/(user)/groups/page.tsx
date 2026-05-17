@@ -31,6 +31,7 @@ import {
 import Link from "next/link";
 import { IGroup } from "@/lib/types/group.types";
 import { Auth } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
 
 
 
@@ -272,10 +273,9 @@ function SummaryStats({ groups }: { groups: IGroup[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function MyCirclesPage(props) {
+export default function MyCirclesPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "closed">("all");
-  console.log(props)
   const userId = Auth.id();
   const filtered = MY_GROUPS.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase());
@@ -287,7 +287,7 @@ export default function MyCirclesPage(props) {
 
   return (
     <div className="min-h-full bg-zinc-50/40">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className=" px-4 sm:px-6 py-6 space-y-6">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -315,12 +315,12 @@ export default function MyCirclesPage(props) {
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-            <input
+            <Input
               type="text"
               placeholder="Search your circles…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-9 pl-8 pr-4 rounded-xl border-[1.5px] border-zinc-200 bg-white text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-700 focus:shadow-[0_0_0_3px_rgba(26,107,82,.10)] transition-all"
+              className="py-[25px]"
             />
           </div>
           <div className="flex items-center gap-1 bg-zinc-100 rounded-xl p-1">
@@ -328,7 +328,7 @@ export default function MyCirclesPage(props) {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium capitalize transition-all ${filter === f ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:text-zinc-700"}`}
+                className={`px-5 py-2.5 rounded-lg text-[12px] font-medium capitalize transition-all ${filter === f ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:text-zinc-700"}`}
               >
                 {f === "all" ? "All" : f}
               </button>
