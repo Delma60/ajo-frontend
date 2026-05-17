@@ -7,6 +7,13 @@ export type PayoutOrder = "rotational" | "random" | "bidding";
 export type GroupStatus = "active" | "paused" | "closed";
 export type MemberStatus = "active" | "defaulted" | "pending";
 
+export interface TrustColors {
+  bg: string;
+  text: string;
+  bar: string;
+}
+ 
+
 export interface IGroup {
   readonly id: string;
   name:string;
@@ -33,6 +40,7 @@ export interface IGroup {
   isPrivate:boolean;
   cycles:IGroupCycle[];
   help?:boolean;
+  featured?:boolean;
   creation_fee:string|number;
   pendingInvites :IInvite[]
   pendingRequests :IInvite[]

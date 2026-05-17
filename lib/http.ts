@@ -3,6 +3,7 @@
 // Types & Interfaces (for HTTP only)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { Auth } from "./auth";
 import { HttpClientConfig, HttpMethod, IHttpResponse, QueryParams, RequestInterceptor, ResponseInterceptor, RetryConfig } from "./types/http.types";
 
 
@@ -297,6 +298,16 @@ export const HTTPS = new HttpClient({
         baseDelayMs: 300,
     },
 })
+    .addRequestInterceptor((init, url) => {
+        const token = Auth.token();
+        if (token) {
+            init.headers = {
+                ...init.headers,
+                Authorization: `Bearer ${token}`,
+            };
+        }
+        return init;
+    })
     .addResponseInterceptor((response) => {
         if (response.status === 401) {
             console.warn("Session expired. Redirecting to login…");

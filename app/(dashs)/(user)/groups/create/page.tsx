@@ -643,7 +643,7 @@ export default function CreateGroupPage() {
   if (submitted) {
     return (
       <div className="min-h-full bg-zinc-50/40 flex items-center justify-center p-6">
-        <div className="max-w-md w-full text-center space-y-5">
+        <div className="w-full text-center space-y-5">
           <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
             <CheckCircle2 size={32} className="text-emerald-600" />
           </div>
