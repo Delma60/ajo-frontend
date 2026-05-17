@@ -1,4 +1,4 @@
-import type { AuthUser, Credentials, LoginResponse, AuthEvents, GuardConfig, JwtPayload } from "./auth.types";
+import type { AuthUser, Credentials, LoginResponse, AuthEvents, GuardConfig, JwtPayload } from "./types/auth.types";
 import { resolveDriver, ITokenDriver } from "./token-storage";
 import { JwtUtils } from "./jwt-utils";
 import { HTTPS, HttpError, type HttpClient } from "./http";

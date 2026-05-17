@@ -1,6 +1,6 @@
 import { Auth } from "./auth";
 import type { Guard } from "./guard";
-import type { GuardConfig } from "./auth.types";
+import type { GuardConfig } from "./types/auth.types";
 import { User, RawUser } from "./user";
 
 export function withUserClass<TRaw extends RawUser = RawUser>(

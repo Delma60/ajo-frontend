@@ -1,7 +1,7 @@
 // Types and interfaces for authentication
 
-import { HttpClient } from "./http";
-import { Role } from "./role";
+import { HttpClient } from "../http";
+import { Role } from "../role";
 
 export interface AuthUser {
     id: string | number;

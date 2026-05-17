@@ -287,14 +287,16 @@ function CirclesSection() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>My Circles</CardTitle>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="rounded-lg gap-1.5"
-            >
-              <Plus size={14} />
-              Join
-            </Button>
+            <Link href="/groups/discover">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-lg gap-1.5"
+              >
+                <Plus size={14} />
+                Join
+              </Button>
+            </Link>
           </div>
           <CardDescription>Your active savings groups</CardDescription>
         </CardHeader>
@@ -306,9 +308,11 @@ function CirclesSection() {
             <p className="text-sm text-zinc-500 mb-3">
               You haven&apos;t joined any circles yet.
             </p>
-            <Button size="sm" variant="primary" className="rounded-lg">
-              Find a Circle
-            </Button>
+            <Link href="/groups/discover">
+              <Button size="sm" variant="primary" className="rounded-lg">
+                Find a Circle
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
@@ -320,18 +324,31 @@ function CirclesSection() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>My Circles</CardTitle>
-          <Button size="sm" variant="secondary" className="rounded-lg gap-1.5">
-            <Plus size={14} />
-            Join
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/groups/discover">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-lg gap-1.5"
+              >
+                <Plus size={14} />
+                Join
+              </Button>
+            </Link>
+            <Link href="/groups">
+              <Button size="sm" variant="ghost" className="rounded-lg gap-1.5">
+                View all
+              </Button>
+            </Link>
+          </div>
         </div>
         <CardDescription>Your active savings groups</CardDescription>
       </CardHeader>
       <CardDivider />
       <CardContent className="pt-0 px-0">
         <ul>
-          {MOCK_CIRCLES.map((circle, idx) => (
-            <React.Fragment key={circle.id}>
+          {MOCK_CIRCLES.slice(0, 5).map((circle, idx, arr) => (
+            <Link href={`/groups/${circle.id}`} key={circle.id}>
               <li className="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm shrink-0">
                   {circle.name.slice(0, 2).toUpperCase()}
@@ -366,10 +383,10 @@ function CirclesSection() {
                   className="text-zinc-300 group-hover:text-zinc-500 transition-colors shrink-0"
                 />
               </li>
-              {idx < MOCK_CIRCLES.length - 1 && (
+              {idx < Math.min(arr.length, 5) - 1 && (
                 <CardDivider className="mx-0" />
               )}
-            </React.Fragment>
+            </Link>
           ))}
         </ul>
       </CardContent>

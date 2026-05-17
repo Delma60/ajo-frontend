@@ -1,4 +1,4 @@
-import type { JwtPayload } from "./auth.types";
+import type { JwtPayload } from "./types/auth.types";
 
 export class JwtUtils {
     static decodeJwt(token: string): JwtPayload | null {

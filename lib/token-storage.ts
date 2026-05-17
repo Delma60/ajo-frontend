@@ -1,4 +1,4 @@
-import type { StorageDriver } from "./auth.types";
+import type { StorageDriver } from "./types/auth.types";
 
 export interface ITokenDriver {
     get(key: string): string | null;

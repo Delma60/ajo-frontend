@@ -68,7 +68,7 @@ export default async function DashboardLayout({
           <SidebarFooter>
             <SidebarUser
               name="Adaeze Okafor"
-              email={user?.email}
+              email={String(user?.email || "")}
               initials="AO"
             />
           </SidebarFooter>

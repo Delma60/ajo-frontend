@@ -1,4 +1,4 @@
-import type { AuthUser } from "./auth.types";
+import type { AuthUser } from "./types/auth.types";
 
 export interface AppUser extends AuthUser {
     id: number;

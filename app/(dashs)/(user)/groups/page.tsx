@@ -29,28 +29,10 @@ import {
   PauseCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { IGroup } from "@/lib/types/group.types";
+import { Auth } from "@/lib/auth";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface IGroup {
-  id: string;
-  name: string;
-  description: string;
-  nextDue: string;
-  goal: number;
-  saved: number;
-  contribution: string | number;
-  membersCount: number;
-  frequency: "daily" | "weekly" | "bi-weekly" | "monthly";
-  max_members: number;
-  payout_order: "rotational" | "random" | "bidding";
-  status: "active" | "closed" | "paused";
-  nextPayout: string | Date;
-  isPrivate: boolean;
-  myTurn?: number;
-  hasPaid?: boolean;
-  role?: "admin" | "member";
-}
 
 // ─── Mock data — only groups the user has joined ──────────────────────────────
 
@@ -70,9 +52,17 @@ const MY_GROUPS: IGroup[] = [
     status: "active",
     nextPayout: "2026-06-01",
     isPrivate: false,
-    myTurn: 3,
-    hasPaid: true,
-    role: "member",
+    members: [],
+    start_date: "",
+    imageUrl: "",
+    owner_id: "",
+    created_at: "",
+    group_transaction: [],
+    transactions: [],
+    cycles: [],
+    creation_fee: "",
+    pendingInvites: [],
+    pendingRequests: []
   },
   {
     id: "2",
@@ -89,9 +79,17 @@ const MY_GROUPS: IGroup[] = [
     status: "active",
     nextPayout: "2026-05-18",
     isPrivate: true,
-    myTurn: 7,
-    hasPaid: false,
-    role: "admin",
+    members: [],
+    start_date: "",
+    imageUrl: "",
+    owner_id: "",
+    created_at: "",
+    group_transaction: [],
+    transactions: [],
+    cycles: [],
+    creation_fee: "",
+    pendingInvites: [],
+    pendingRequests: []
   },
   {
     id: "4",
@@ -108,9 +106,17 @@ const MY_GROUPS: IGroup[] = [
     status: "closed",
     nextPayout: "2026-06-01",
     isPrivate: true,
-    myTurn: 12,
-    hasPaid: true,
-    role: "member",
+    members: [],
+    start_date: "",
+    imageUrl: "",
+    owner_id: "",
+    created_at: "",
+    group_transaction: [],
+    transactions: [],
+    cycles: [],
+    creation_fee: "",
+    pendingInvites: [],
+    pendingRequests: []
   },
 ];
 
@@ -137,8 +143,10 @@ function daysUntil(dateStr: string | Date) {
 
 // ─── Payment alert banner ─────────────────────────────────────────────────────
 
-function PaymentDueBanner({ groups }: { groups: IGroup[] }) {
-  const unpaid = groups.filter((g) => g.status === "active" && !g.hasPaid);
+function PaymentDueBanner({ groups, currentUserId }: { groups: IGroup[], currentUserId: string }) {
+  // find user in member
+  const currentMember = groups.flatMap(g => g.members).find(m => m.id === currentUserId);
+  const unpaid = groups.filter((g) => g.status === "active" && !currentMember?.hasPaid);
   if (unpaid.length === 0) return null;
 
   return (
@@ -161,10 +169,12 @@ function PaymentDueBanner({ groups }: { groups: IGroup[] }) {
 
 // ─── Circle row (list item style) ────────────────────────────────────────────
 
-function CircleRow({ group }: { group: IGroup }) {
+function CircleRow({ group, currentUserId }: { group: IGroup, currentUserId: string }) {
+  const currentMember = group.members.find(m => m.id === currentUserId);
+
   const pct = Math.min(100, Math.round((group.saved / group.goal) * 100));
   const dueIn = daysUntil(group.nextDue);
-  const isDueSoon = !group.hasPaid && group.status === "active" && (dueIn === "Today" || dueIn === "Tomorrow" || dueIn === "Overdue");
+  const isDueSoon = !currentMember?.hasPaid && group.status === "active" && (dueIn === "Today" || dueIn === "Tomorrow" || dueIn === "Overdue");
 
   const statusIcon = {
     active: <CheckCircle2 size={14} className="text-emerald-600" />,
@@ -183,7 +193,7 @@ function CircleRow({ group }: { group: IGroup }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
           <span className="text-[14px] font-semibold text-zinc-900 truncate">{group.name}</span>
-          {group.role === "admin" && (
+          {currentMember?.role === "admin" && (
             <CardBadge color="green">Admin</CardBadge>
           )}
           {group.isPrivate
@@ -206,8 +216,8 @@ function CircleRow({ group }: { group: IGroup }) {
             <Users size={10} /> {group.membersCount}/{group.max_members}
           </span>
           <span>{formatNaira(Number(group.contribution))} · {frequencyLabel(group.frequency)}</span>
-          {group.myTurn && (
-            <span>Turn {group.myTurn} of {group.max_members}</span>
+          {currentMember?.myTurn && (
+            <span>Turn {currentMember.myTurn} of {group.max_members}</span>
           )}
         </div>
       </div>
@@ -215,10 +225,10 @@ function CircleRow({ group }: { group: IGroup }) {
       {/* Right: due date + action */}
       <div className="text-right shrink-0 hidden sm:block">
         <p className={`text-[12px] font-semibold mb-0.5 ${isDueSoon ? "text-amber-600" : "text-zinc-700"}`}>
-          {group.hasPaid ? "Paid ✓" : dueIn}
+          {currentMember?.hasPaid ? "Paid ✓" : dueIn}
         </p>
         <p className="text-[11px] text-zinc-400">
-          {group.hasPaid ? "This cycle" : "Next due"}
+          {currentMember?.hasPaid ? "This cycle" : "Next due"}
         </p>
       </div>
 
@@ -262,10 +272,11 @@ function SummaryStats({ groups }: { groups: IGroup[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function MyCirclesPage() {
+export default function MyCirclesPage(props) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "closed">("all");
-
+  console.log(props)
+  const userId = Auth.id();
   const filtered = MY_GROUPS.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "all" || g.status === filter;
@@ -298,7 +309,7 @@ export default function MyCirclesPage() {
         <SummaryStats groups={MY_GROUPS} />
 
         {/* Payment alert */}
-        <PaymentDueBanner groups={MY_GROUPS} />
+        <PaymentDueBanner groups={MY_GROUPS} currentUserId={String(userId)} />
 
         {/* Controls */}
         <div className="flex flex-col sm:flex-row gap-2">
@@ -337,7 +348,7 @@ export default function MyCirclesPage() {
         ) : (
           <Card variant="default" className="overflow-hidden divide-y divide-zinc-100">
             {filtered.map((group) => (
-              <CircleRow key={group.id} group={group} />
+              <CircleRow key={group.id} group={group} currentUserId={String(userId)} />
             ))}
           </Card>
         )}

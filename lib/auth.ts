@@ -1,4 +1,4 @@
-import type { AuthUser, Credentials, GuardConfig } from "./auth.types";
+import type { AuthUser, Credentials, GuardConfig } from "./types/auth.types";
 import { Guard } from "./guard";
 export { Role } from "./role";
 export { User } from "./user";

@@ -3,7 +3,7 @@
 // Types & Interfaces (for HTTP only)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { HttpClientConfig, HttpMethod, IHttpResponse, QueryParams, RequestInterceptor, ResponseInterceptor, RetryConfig } from "./http.types";
+import { HttpClientConfig, HttpMethod, IHttpResponse, QueryParams, RequestInterceptor, ResponseInterceptor, RetryConfig } from "./types/http.types";
 
 
 const DEFAULT_RETRY_ON = [429, 502, 503, 504];
