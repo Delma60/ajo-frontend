@@ -229,7 +229,7 @@ export const Sidebar = forwardRef<HTMLElement, SidebarProps>(
           className={cn(
             'hidden md:flex flex-col shrink-0 overflow-hidden',
             'transition-[width] duration-300 ease-in-out',
-            'bg-emerald-950 text-emerald-50',
+            'bg-zinc-900 text-emerald-50',
             // subtle inner shadow on right edge
             side === 'left' && 'shadow-[inset_-1px_0_0_rgba(255,255,255,.06)]',
             side === 'right' && 'shadow-[inset_1px_0_0_rgba(255,255,255,.06)]',
@@ -252,7 +252,7 @@ export const Sidebar = forwardRef<HTMLElement, SidebarProps>(
           style={{ width }}
           className={cn(
             'fixed inset-y-0 z-50 flex flex-col md:hidden',
-            'bg-emerald-950 text-emerald-50',
+            'bg-zinc-900 text-emerald-50',
             'transition-transform duration-300 ease-in-out',
             mobileTranslate,
             side === 'left' ? 'left-0' : 'right-0',
@@ -278,7 +278,7 @@ export const SidebarHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
         ref={ref}
         className={cn(
           'flex items-center gap-3 shrink-0 h-16 px-4',
-          'border-b border-white/[.07]',
+          'border-b border-white/[0.6]',
           isRail && 'px-0 justify-center',
           className
         )}
@@ -299,7 +299,7 @@ export const SidebarFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
         ref={ref}
         className={cn(
           'flex items-center shrink-0 px-3 py-3 mt-auto',
-          'border-t border-white/[.07]',
+          'border-t border-white/[0.6]',
           isRail && 'px-0 justify-center',
           className
         )}
@@ -377,9 +377,9 @@ export const SidebarGroupLabel = forwardRef<HTMLButtonElement, ButtonHTMLAttribu
         onClick={isCollapsible ? handleClick : undefined}
         className={cn(
           'flex items-center justify-between w-full px-4 py-1.5 mb-0.5',
-          'text-[10px] font-semibold uppercase tracking-[.12em] text-emerald-400/60',
+          'text-[10px] font-semibold uppercase tracking-[.12em] text-zinc-500',
           'select-none',
-          isCollapsible && 'hover:text-emerald-400/90 transition-colors cursor-pointer',
+          isCollapsible && 'hover:text-zinc-100 transition-colors cursor-pointer',
           className
         )}
         {...props}
@@ -562,7 +562,7 @@ export const SidebarSeparator = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDi
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('mx-4 my-1 h-px bg-white/[.06]', className)}
+      className={cn('mx-4 my-1 h-px bg-white/[.06] bg-zinc-800', className)}
       {...props}
     />
   )
@@ -701,7 +701,7 @@ export function SidebarUser({ name, email, avatar, initials, onClick }: SidebarU
       onClick={onClick}
       className={cn(
         'group flex w-full items-center gap-3 rounded-xl p-2',
-        'hover:bg-white/[.07] transition-colors duration-150',
+        'hover:bg-zinc-800 transition-colors duration-150',
         'outline-none focus-visible:ring-1 focus-visible:ring-emerald-400/40',
         isRail && 'justify-center p-1'
       )}

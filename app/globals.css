@@ -1,1 +1,343 @@
 @import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK MODE
+   Uses .dark class on <html> (add it via JS toggle).
+   Also responds to system preference automatically.
+   ═══════════════════════════════════════════════════════════════════
+   Setup in layout.tsx:
+     <html className={isDark ? "dark" : ""} ...>
+
+   Or add a theme provider that toggles "dark" on document.documentElement.
+   ═══════════════════════════════════════════════════════════════════ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ───────────────────────────────────────────────────────────────────
+   Change ONE section to retheme the whole app:
+
+   • Primary colour  → swap the 11 --primary-* hex values
+   • Brand font      → change --font-serif / --font-sans
+   • Border radius   → change --radius-*
+
+   Everything else (buttons, cards, inputs, badges, sidebar …)
+   automatically inherits through @theme inline below.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@layer base {
+
+  /* ─── LIGHT MODE (default) ─────────────────────────────────────── */
+  :root {
+
+    /* ── Primary colour ramp (currently: Emerald)
+       Replace all 11 values with another Tailwind scale to rebrand.
+       e.g., blue: #eff6ff → #1e3a5f
+             rose: #fff1f2 → #4c0519
+             violet: #f5f3ff → #2e1065                            */
+    --primary-50:  #ecfdf5;
+    --primary-100: #d1fae5;
+    --primary-200: #a7f3d0;
+    --primary-300: #6ee7b7;
+    --primary-400: #34d399;
+    --primary-500: #10b981;
+    --primary-600: #059669;
+    --primary-700: #047857;
+    --primary-800: #065f46;
+    --primary-900: #064e3b;
+    --primary-950: #022c22;
+
+    /* ── App surface colours ───────────────────────────────────────── */
+    --bg:            #ffffff;       /* base page background           */
+    --bg-subtle:     #f9fafb;       /* slightly off-white page bg     */
+    --surface:       #ffffff;       /* cards, sheets, popovers        */
+    --surface-alt:   #f4f4f5;       /* muted/secondary surfaces       */
+    --border:        #e4e4e7;       /* default border                 */
+    --border-strong: #d4d4d8;       /* stronger separator             */
+
+    /* ── Text colours ──────────────────────────────────────────────── */
+    --text:          #18181b;       /* primary body text              */
+    --text-muted:    #71717a;       /* secondary / helper text        */
+    --text-subtle:   #a1a1aa;       /* placeholder / disabled text    */
+    --text-inverse:  #ffffff;       /* text on dark/primary bg        */
+
+    /* ── Sidebar
+       Stays intentionally dark in both light & dark modes.
+       Change only these to restyle the sidebar.                    */
+    --sidebar-bg:           #18181b;              /* zinc-900         */
+    --sidebar-border:       rgba(255,255,255,.06); /* subtle divider   */
+    --sidebar-text:         #f4f4f5;              /* primary label     */
+    --sidebar-text-muted:   #a1a1aa;              /* secondary label   */
+    --sidebar-text-subtle:  #52525b;              /* inactive icon     */
+    --sidebar-item-hover:   #27272a;              /* hover bg         */
+    --sidebar-item-active:  #27272a;              /* active item bg   */
+    --sidebar-separator:    #27272a;              /* <hr> line        */
+    --sidebar-accent:       var(--primary-400);   /* active indicator */
+    --sidebar-badge-bg:     #27272a;
+    --sidebar-badge-text:   #a1a1aa;
+
+    /* ── Input / form controls ─────────────────────────────────────── */
+    --input-bg:           #ffffff;
+    --input-border:       #e4e4e7;
+    --input-border-hover: var(--primary-200);
+    --input-border-focus: var(--primary-700);
+    --input-ring:         rgba(4, 120, 87, 0.10);   /* primary-700 at 10% */
+    --input-text:         #18181b;
+    --input-placeholder:  #a1a1aa;
+    --input-disabled-bg:  #f4f4f5;
+
+    /* ── Status / semantic colours ─────────────────────────────────── */
+    --success:        var(--primary-600);
+    --success-subtle: var(--primary-50);
+    --warning:        #d97706;
+    --warning-subtle: #fffbeb;
+    --danger:         #dc2626;
+    --danger-subtle:  #fef2f2;
+    --info:           #2563eb;
+    --info-subtle:    #eff6ff;
+
+    /* ── Typography ────────────────────────────────────────────────── */
+    --font-serif: 'Georgia', 'Times New Roman', serif;
+    --font-sans:  var(--font-geist-sans, system-ui, sans-serif);
+    --font-mono:  var(--font-geist-mono, ui-monospace, 'Courier New', monospace);
+
+    /* ── Radii ──────────────────────────────────────────────────────── */
+    --radius-sm:   0.375rem;   /*  6px */
+    --radius:      0.5rem;     /*  8px */
+    --radius-md:   0.75rem;    /* 12px */
+    --radius-lg:   1rem;       /* 16px */
+    --radius-xl:   1.25rem;    /* 20px */
+    --radius-2xl:  1.5rem;     /* 24px */
+    --radius-full: 9999px;
+
+    /* ── Shadows ────────────────────────────────────────────────────── */
+    --shadow-xs: 0 1px 2px 0 rgba(0,0,0,.05);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 2px 6px rgba(0,0,0,.04);
+    --shadow:    0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+    --shadow-xl: 0 20px 60px rgba(0,0,0,.14);
+
+    /* ── Transitions ────────────────────────────────────────────────── */
+    --ease-fast:   100ms cubic-bezier(.4, 0, .2, 1);
+    --ease:        150ms cubic-bezier(.4, 0, .2, 1);
+    --ease-slow:   300ms cubic-bezier(.4, 0, .2, 1);
+    --ease-spring: 400ms cubic-bezier(.34, 1.56, .64, 1);
+
+    /* ── Z-index scale ──────────────────────────────────────────────── */
+    --z-dropdown: 1000;
+    --z-sticky:   1020;
+    --z-overlay:  1040;
+    --z-modal:    1060;
+    --z-toast:    1080;
+  }
+
+
+  /* ─── DARK MODE overrides ──────────────────────────────────────── */
+  .dark {
+
+    /* Surfaces flip to dark zinc */
+    --bg:            #09090b;       /* zinc-950                       */
+    --bg-subtle:     #09090b;
+    --surface:       #18181b;       /* zinc-900 — card bg             */
+    --surface-alt:   #27272a;       /* zinc-800 — muted surfaces      */
+    --border:        #3f3f46;       /* zinc-700                       */
+    --border-strong: #52525b;       /* zinc-600                       */
+
+    /* Text flips to light */
+    --text:          #fafafa;       /* zinc-50                        */
+    --text-muted:    #a1a1aa;       /* zinc-400                       */
+    --text-subtle:   #71717a;       /* zinc-500                       */
+
+    /* Input adapts to dark surfaces */
+    --input-bg:           #18181b;
+    --input-border:       #3f3f46;
+    --input-border-hover: var(--primary-700);
+    --input-border-focus: var(--primary-500);
+    --input-ring:         rgba(16, 185, 129, 0.15);
+    --input-text:         #fafafa;
+    --input-disabled-bg:  #27272a;
+
+    /* Status subtle backgrounds darken */
+    --success-subtle: #064e3b;
+    --warning-subtle: #451a03;
+    --danger-subtle:  #450a0a;
+    --info-subtle:    #172554;
+
+    /* Shadows are stronger on dark bg */
+    --shadow:    0 1px 2px rgba(0,0,0,.2), 0 4px 12px rgba(0,0,0,.3);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.4);
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAILWIND THEME OVERRIDES  (@theme inline)
+   ───────────────────────────────────────────────────────────────────
+   Maps Tailwind utility names to our CSS variables so that
+   existing classes like bg-emerald-800 or border-zinc-200
+   automatically resolve through our token system.
+
+   Components DO NOT need any class-name changes.
+   ═══════════════════════════════════════════════════════════════════ */
+@theme inline {
+
+  /* ── Primary ramp → all bg-emerald-*, text-emerald-*, ring-emerald-*
+     border-emerald-*, etc. now resolve through --primary-*          */
+  --color-emerald-50:  var(--primary-50);
+  --color-emerald-100: var(--primary-100);
+  --color-emerald-200: var(--primary-200);
+  --color-emerald-300: var(--primary-300);
+  --color-emerald-400: var(--primary-400);
+  --color-emerald-500: var(--primary-500);
+  --color-emerald-600: var(--primary-600);
+  --color-emerald-700: var(--primary-700);
+  --color-emerald-800: var(--primary-800);
+  --color-emerald-900: var(--primary-900);
+  --color-emerald-950: var(--primary-950);
+
+  /* ── Semantic surface tokens — use in new components ────────────
+     bg-background, text-foreground, bg-surface, border-default …  */
+  --color-background:     var(--bg);
+  --color-background-subtle: var(--bg-subtle);
+  --color-surface:        var(--surface);
+  --color-surface-alt:    var(--surface-alt);
+  --color-foreground:     var(--text);
+  --color-muted:          var(--text-muted);
+  --color-subtle:         var(--text-subtle);
+  --color-border-default: var(--border);
+
+  /* ── Sidebar-specific tokens — used only in sidebar.tsx ─────────
+     bg-sidebar, text-sidebar-muted, bg-sidebar-hover …            */
+  --color-sidebar:        var(--sidebar-bg);
+  --color-sidebar-text:   var(--sidebar-text);
+  --color-sidebar-muted:  var(--sidebar-text-muted);
+  --color-sidebar-subtle: var(--sidebar-text-subtle);
+  --color-sidebar-hover:  var(--sidebar-item-hover);
+  --color-sidebar-active: var(--sidebar-item-active);
+  --color-sidebar-sep:    var(--sidebar-separator);
+  --color-sidebar-accent: var(--sidebar-accent);
+
+  /* ── Input tokens ───────────────────────────────────────────────
+     bg-input, border-input, ring-input …                          */
+  --color-input:          var(--input-bg);
+  --color-input-border:   var(--input-border);
+
+  /* ── Status tokens ──────────────────────────────────────────────
+     text-success, bg-warning-subtle, text-danger …               */
+  --color-success:        var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning:        var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger:         var(--danger);
+  --color-danger-subtle:  var(--danger-subtle);
+  --color-info:           var(--info);
+  --color-info-subtle:    var(--info-subtle);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   BASE / RESET STYLES
+   ═══════════════════════════════════════════════════════════════════ */
+@layer base {
+
+  /* Default border colour to our token */
+  *, *::before, *::after {
+    border-color: var(--border);
+  }
+
+  html {
+    /* Enables both class-based and system dark mode */
+    color-scheme: light dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg-subtle);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  /* Consistent focus ring using primary colour */
+  :focus-visible {
+    outline: 2px solid var(--primary-600);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Remove default focus ring for mouse users */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Heading defaults */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text);
+    line-height: 1.25;
+  }
+
+  /* Link defaults */
+  a {
+    color: var(--primary-700);
+    text-decoration: none;
+    transition: color var(--ease);
+  }
+  a:hover {
+    color: var(--primary-600);
+  }
+
+  /* ── Scrollbar styling (webkit) ─────────────────────────────────
+     Updates automatically when --border / --border-strong change.  */
+  ::-webkit-scrollbar {
+    width:  6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-full);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+  }
+
+  /* Thin sidebar scrollbar */
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.12);
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   Small helpers that use the token system.
+   ═══════════════════════════════════════════════════════════════════ */
+@layer utilities {
+
+  /* Font families via token */
+  .font-serif { font-family: var(--font-serif); }
+  .font-sans  { font-family: var(--font-sans);  }
+  .font-mono  { font-family: var(--font-mono);  }
+
+  /* Shadow utilities via token */
+  .shadow-token-sm { box-shadow: var(--shadow-sm); }
+  .shadow-token    { box-shadow: var(--shadow);    }
+  .shadow-token-lg { box-shadow: var(--shadow-lg); }
+
+  /* Transition utilities via token */
+  .transition-fast   { transition: all var(--ease-fast); }
+  .transition-normal { transition: all var(--ease); }
+  .transition-slow   { transition: all var(--ease-slow); }
+
+  /* Input ring helper — used in input.tsx */
+  .input-ring {
+    box-shadow: 0 0 0 3px var(--input-ring);
+  }
+}
