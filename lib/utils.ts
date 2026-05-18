@@ -53,3 +53,10 @@ export function formatDate(
 ): string {
   return new Date(dateStr).toLocaleDateString("en-NG", opts);
 }
+
+
+export function generateReference(prefix = 'TX') {
+  const ts = Date.now().toString(36);
+  const rand = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
+  return `${prefix}_${ts}_${rand}`;
+}

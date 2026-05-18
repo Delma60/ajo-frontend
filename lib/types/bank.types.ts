@@ -37,3 +37,31 @@ export interface ICard {
 
     user_id:string;
 }
+
+
+export interface WithdrawParams {
+  amount: number;
+  user_id:string;
+  bank_id:string;
+  fee:number;
+  reference?: string;
+  note:string;
+  type:"bank"|'wallet'
+}
+
+export interface DepositParams {
+  amount: number;
+  method:"card"|'ussd';
+  user_id?:IUser['id'];
+  card_id?:ICard['id'];
+  provider?: string;
+  reference?: string;
+  from_pending?: boolean;
+  card?:{
+    encrypted_card_number?:string;
+    encrypted_expiry_month?:string;
+    encrypted_expiry_year?:string;
+    nonce:string;
+
+  }
+}
