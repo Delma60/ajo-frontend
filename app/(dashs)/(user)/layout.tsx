@@ -29,7 +29,9 @@ import {
   SettingsIcon,
   LogOutIcon,
   ChevronRightIcon,
+  Ticket,
 } from "lucide-react";
+import { Auth } from "@/lib/auth";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +67,15 @@ const MAIN_NAV: NavItem[] = [
       { label: "Discover", href: "/groups/discover" },
       { label: "Create Circle", href: "/groups/create" },
     ],
+  },
+  {
+    label: 'Transaction',
+    href: '/transactions',
+    icon: <Ticket size={18} />,
+    matchPrefix: true,
+    children: [
+      { label: "History", href: "/transactions/history" },
+    ]
   },
   {
     label: "Wallet",
@@ -314,6 +325,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const user = Auth.user();
   return (
     <SidebarProvider defaultOpen persist>
       <SidebarLayout>
@@ -363,8 +375,8 @@ export default function DashboardLayout({
 
           <SidebarFooter>
             <SidebarUser
-              name="Adaeze Okafor"
-              email="adaeze@example.com"
+              name={String(user?.name)}
+              email={String(user?.email)}
               initials="AO"
             />
           </SidebarFooter>

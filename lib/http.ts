@@ -166,7 +166,7 @@ export class HttpClient {
         }
 
         // Unreachable, but satisfies TypeScript
-        return this.formatResponse<T>(null, "Request failed after retries.", 500);
+        return this.formatResponse<T>(null, "Request failed after retries.", 500, null, false);
     }
 
     private async attempt<T>(
@@ -216,17 +216,17 @@ export class HttpClient {
         } catch (error: unknown) {
             console.error(error)
             if (error instanceof DOMException && error.name === "AbortError") {
-                return this.formatResponse<T>(null, "Request was cancelled.", 499);
+                return this.formatResponse<T>(null, "Request was cancelled.", 499, null, false);
             }
             const message = error instanceof Error ? error.message : "An unexpected network error occurred.";
-            return this.formatResponse<T>(null, message, 0);
+            return this.formatResponse<T>(null, message, 0, null, false);
         }
     }
 
     private async parseResponse<T>(response: Response): Promise<IHttpResponse<T>> {
         // No Content — nothing to parse
         if (response.status === 204) {
-            return this.formatResponse<T>(null, "Request successful.", 204);
+            return this.formatResponse<T>(null, "Request successful.", 204, null, true);
         }
 
         const result: Record<string, unknown> = await response.json().catch(() => ({}));
@@ -236,11 +236,11 @@ export class HttpClient {
                 ? result.message
                 : "An error occurred while making the request.";
             const errors = (result.errors as Record<string, string[]>) ?? null;
-            return this.formatResponse<T>(null, message, response.status, errors);
+            return this.formatResponse<T>(null, message, response.status, errors, false);
         }
 
         const message = typeof result.message === "string" ? result.message : "Request successful.";
-        return this.formatResponse<T>(result.data as T, message, response.status);
+        return this.formatResponse<T>(result.data as T, message, response.status, null, true);
     }
 
     // ── Utilities ──────────────────────────────────────────────────────────
@@ -280,9 +280,10 @@ export class HttpClient {
         data: T | null,
         message: string,
         statusCode: number,
-        errors: Record<string, string[]> | null = null
+        errors: Record<string, string[]> | null = null,
+        ok:boolean = false
     ): IHttpResponse<T> {
-        return { data, message, statusCode, errors };
+        return { data, message, statusCode, errors, ok };
     }
 }
 
@@ -309,14 +310,19 @@ export const HTTPS = new HttpClient({
         return init;
     })
     .addResponseInterceptor((response) => {
+        
         if (response.status === 401) {
             console.warn("Session expired. Redirecting to login…");
             // window.location.href = "/login";
+        }
+        if (response.status === 400) {
+            console.log("Error occurred in backend")
         }
         if (response.status === 419) {
             console.warn("CSRF token mismatch. Refreshing…");
             // window.location.reload();
         }
+        
     });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 Auth.extend<AppUser>("web", {
     driver: "cookie",
-    
     endpoints: {
         login: "/auth/token-login",
         logout: "/auth/logout",
@@ -18,6 +17,7 @@ Auth.extend<AppUser>("web", {
     refreshThresholdSeconds: 1200,
     roleFactory: (user) => new Role(user.roles, user.permissions),
     events: {
+        
         onLogin: (user) => {
             console.log(`[Auth] Logged in as ${user.email}`);
             window.location.href = "/dashboard";
@@ -34,3 +34,6 @@ Auth.extend<AppUser>("web", {
         },
     },
 });
+
+
+Auth.fetchUser();

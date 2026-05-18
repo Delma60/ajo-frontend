@@ -3,6 +3,7 @@ export  interface IHttpResponse<T> {
     message: string;
     statusCode: number;
     errors: Record<string, string[]> | null;
+    ok:boolean
 }
 
 

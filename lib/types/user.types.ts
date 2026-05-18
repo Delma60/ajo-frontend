@@ -14,12 +14,7 @@ export interface IUser {
   virtual_bank?: IVirtualBank;
   cards?: ICard[];
   groups?: IGroup[];
-  balance: {
-    available_wallet: string;
-    pending_wallet: string;
-    available_referral: string;
-    pending_referral: string;
-  };
+  balance: IBalance
   referral_count: number;
   referral_code: string;
   status: "active" | 'pending' | "suspended" | "banned";
@@ -49,5 +44,13 @@ export interface IUser {
     invited_count:number;
     referred_users: IUser[]
   }
+}
+
+export interface IBalance {
+    available_wallet: string;
+    pending_wallet: string;
+    available_referral: string;
+    pending_referral: string;
+    total_saved: number;
 }
 

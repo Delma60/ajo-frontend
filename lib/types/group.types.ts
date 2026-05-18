@@ -43,7 +43,8 @@ export interface IGroup {
   featured?:boolean;
   creation_fee:string|number;
   pendingInvites :IInvite[]
-  pendingRequests :IInvite[]
+  pendingRequests :IInvite[];
+  meta:Record<string, unknown>
 }
 
 

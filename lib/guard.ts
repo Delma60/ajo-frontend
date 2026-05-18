@@ -4,6 +4,7 @@ import { JwtUtils } from "./jwt-utils";
 import { HTTPS, HttpError, type HttpClient } from "./http";
 import { Role } from "./role";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { Cache } from "./cache";
 
 export class Guard<TUser extends AuthUser = AuthUser> {
     private readonly http: HttpClient;
@@ -29,6 +30,34 @@ export class Guard<TUser extends AuthUser = AuthUser> {
             events: config.events ?? {},
             roleFactory: config.roleFactory ?? Guard._defaultRoleFactory,
         };
+    }
+
+    /**
+     * Derive a stable, per-token cache key so different users never share
+     * the same cached profile, and stale data is automatically evicted when
+     * the token changes (e.g. after re-login).
+     */
+    private _userCacheKey(): string | null {
+        const t = this.token();
+        if (!t) return null;
+        // Use the last 16 chars of the token as a cheap discriminator.
+        // Avoids storing the full JWT in a cache key while still being unique.
+        const suffix = t.slice(-16);
+        return `guard:user:${this.cfg.tokenKey}:${suffix}`;
+    }
+ 
+    /**
+     * How long (seconds) to cache the user profile.
+     * Defaults to the refresh threshold so the cache is cleared before the
+     * token would be refreshed, preventing stale data from leaking across
+     * sessions.
+     */
+    private _userCacheTtl(): number {
+        // Use the refresh threshold (default 1200 s = 20 min) as the TTL so
+        // the profile is re-fetched at the same cadence as token refreshes.
+        return this.cfg.refreshThresholdSeconds > 0
+            ? this.cfg.refreshThresholdSeconds
+            : 300;
     }
 
     public token(): string | null {
@@ -65,21 +94,34 @@ export class Guard<TUser extends AuthUser = AuthUser> {
     public id(): string | number | null {
         return this._user?.id ?? this.tokenPayload()?.sub ?? null;
     }
-    public async user(fetch = true): Promise<TUser | null> {
+
+    public getUser(): TUser | null {
+        return this._user;
+    }
+    
+    public user(): TUser | null {
+        return this._user;
+    }
+ 
+    /**
+     * Async — fetches the user from the API and populates the in-memory cache.
+     * Call this once at app startup (in auth.bootstrap.ts), not inside components.
+     */
+    public async fetchUser(): Promise<TUser | null> {
         if (this._user) return this._user;
         if (!this.check()) return null;
-        if (!fetch) return null;
         if (!this._fetchUserPromise) {
-            this._fetchUserPromise = this._fetchUser().finally(() => {
+            this._fetchUserPromise = Cache.remember("auth_user", 300, async() => await this._fetchUser().finally(() => {
                 this._fetchUserPromise = null;
-            });
+            }));
         }
-            console.log("promised user")
+        
         return this._fetchUserPromise;
     }
+
     public async refreshUser(): Promise<TUser | null> {
         this._setUser(null)
-        return this.user(true);
+        return this.refreshUser();
     }
 
     private static _defaultRoleFactory(user: AuthUser): Role {
@@ -114,11 +156,23 @@ export class Guard<TUser extends AuthUser = AuthUser> {
             await this._maybeRefreshToken();
             const t = this.token();
             if (!t) return null;
+            const cacheKey = this._userCacheKey();
+ 
+            if (cacheKey) {
+                const cached = Cache.get<TUser>(cacheKey);
+                if (cached) {
+                    this._setUser(cached);
+                    return this._user;
+                }
+            }
             const res = await this.http.withToken(t, this.cfg.tokenType).get<{ user:TUser }>(this.cfg.endpoints.user);
-            console.log(res)
             if (res.data) {
-                this._setUser(res.data.user)
-                this.cfg.events.onUserRefreshed?.(res.data.user);
+                const _user = res.data.user
+                this._setUser(_user)
+                if (cacheKey) {
+                    Cache.put(cacheKey, _user, this._userCacheTtl());
+                }
+                this.cfg.events.onUserRefreshed?.(_user);
             }
             return this._user;
         } catch (err) {
@@ -163,6 +217,9 @@ export class Guard<TUser extends AuthUser = AuthUser> {
     }
     public async logout(callServer = true): Promise<void> {
         const previousUser = this._user;
+        const cacheKey = this._userCacheKey();
+        if (cacheKey) Cache.forget(cacheKey);
+
         if (callServer) {
             const t = this.token();
             if (t) {
@@ -223,7 +280,9 @@ export class Guard<TUser extends AuthUser = AuthUser> {
         }
     }
     private async _applyLogin(loginData: LoginResponse): Promise<void> {
-        console.log({loginData})
+        const oldCacheKey = this._userCacheKey();
+        if (oldCacheKey) Cache.forget(oldCacheKey);
+
         this.setToken(loginData.token, loginData.expires_in);
         if (loginData.refresh_token) this.setRefreshToken(loginData.refresh_token);
         if (loginData.user) {

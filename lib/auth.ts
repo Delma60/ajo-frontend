@@ -25,8 +25,11 @@ export const Auth = {
     guest: () => Auth.guard(_defaultGuard).guest(),
     id:    () => Auth.guard(_defaultGuard).id(),
     token: () => Auth.guard(_defaultGuard).token(),
-    user<TUser extends AuthUser = AuthUser>(fetch?: boolean) {
-        return Auth.guard<TUser>(_defaultGuard).user(fetch);
+    user<TUser extends AuthUser = AuthUser>() {
+        return Auth.guard<TUser>(_defaultGuard).user();
+    },
+    fetchUser<TUser extends AuthUser = AuthUser>(): Promise<TUser | null> {
+        return Auth.guard<TUser>(_defaultGuard).fetchUser();
     },
     refreshUser<TUser extends AuthUser = AuthUser>() {
         return Auth.guard<TUser>(_defaultGuard).refreshUser();

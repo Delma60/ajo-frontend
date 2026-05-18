@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {
   Card,
@@ -39,85 +41,14 @@ import {
 } from "lucide-react";
 import { Auth } from "@/lib/auth";
 import Link from "next/link";
+import { IBalance, IUser } from "@/lib/types/user.types";
+import { formatNaira } from "@/lib/utils";
+import { ITransaction } from "@/lib/types/transaction.types";
+import { IGroup } from "@/lib/types/group.types";
+import { GreetingSection } from "@/components/greeting-section";
 
-// ─── Mock data shape matching your API ──────────────────────────────────────
-// Replace with real fetches once endpoints are wired.
-
-const MOCK_CIRCLES = [
-  {
-    id: 1,
-    name: "Family Ajo",
-    members: 8,
-    cycle: "₦50,000/mo",
-    nextPayout: "Jun 2",
-    myTurn: 3,
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Office Contribution",
-    members: 12,
-    cycle: "₦20,000/mo",
-    nextPayout: "May 28",
-    myTurn: 7,
-    status: "active",
-  },
-];
-
-const MOCK_TRANSACTIONS: {
-  type: string;
-  amount: string;
-  date: string;
-  status: "success" | "pending" | "failed";
-  description: string;
-}[] = [];
-
-function GreetingSection({ name }: { name: string }) {
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const firstName = name?.split(" ")[0] ?? "there";
-
-  return (
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div>
-        <p
-          className="text-sm font-medium text-emerald-700 mb-1 tracking-wide uppercase"
-          style={{ fontFamily: "Georgia, serif", letterSpacing: "0.08em" }}
-        >
-          {greeting}
-        </p>
-        <h1
-          className="text-3xl md:text-4xl font-bold text-zinc-900 tracking-tight"
-          style={{ fontFamily: "Georgia, serif" }}
-        >
-          {firstName} <span className="text-emerald-700">👋</span>
-        </h1>
-        <p className="mt-1 text-zinc-500 text-sm">
-          Here&apos;s what&apos;s happening with your savings today.
-        </p>
-      </div>
-      <div className="flex gap-2 flex-wrap">
-        <Button size="md" variant="primary" className="gap-2 rounded-xl">
-          <Plus className="w-4 h-4" />
-          Deposit
-        </Button>
-        <Button size="md" variant="outline" className="gap-2 rounded-xl">
-          <ArrowUpRight className="w-4 h-4" />
-          Withdraw
-        </Button>
-        <Link href="/groups">
-          <Button size="md" variant="ghost" className="gap-2 rounded-xl">
-            <Users className="w-4 h-4" />
-            Join Group
-          </Button>
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function BalanceCard() {
+function BalanceCard({ balance }: { balance: IBalance }) {
+  // const ava
   return (
     <Card
       variant="tinted"
@@ -152,7 +83,7 @@ function BalanceCard() {
             className="text-4xl font-bold text-white"
             style={{ fontFamily: "Georgia, serif" }}
           >
-            ₦0.00
+            {formatNaira(Number(balance?.available_wallet) ?? 0)}
           </span>
           <span className="mb-1 text-sm text-emerald-300/60">NGN</span>
         </div>
@@ -160,11 +91,15 @@ function BalanceCard() {
         <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/10">
           <div>
             <p className="text-emerald-300/60 text-xs mb-1">Available</p>
-            <p className="text-white font-semibold">₦0.00</p>
+            <p className="text-white font-semibold">
+              {formatNaira(Number(balance?.available_wallet) ?? 0)}
+            </p>
           </div>
           <div>
             <p className="text-emerald-300/60 text-xs mb-1">Pending</p>
-            <p className="text-white font-semibold">₦0.00</p>
+            <p className="text-white font-semibold">
+              {formatNaira(Number(balance?.pending_wallet) ?? 0)}
+            </p>
           </div>
         </div>
       </CardContent>
@@ -280,8 +215,17 @@ function QuickActions() {
   );
 }
 
-function CirclesSection() {
-  if (MOCK_CIRCLES.length === 0) {
+function CirclesSection({
+  groups = [],
+  id: currentId,
+}: {
+  groups?: IGroup[];
+  id: IUser["id"];
+}) {
+  const myTurn = groups
+    .flatMap((group) => group.members)
+    .find((mem) => mem.id === currentId)?.myTurn;
+  if (groups.length === 0) {
     return (
       <Card variant="default">
         <CardHeader>
@@ -347,7 +291,7 @@ function CirclesSection() {
       <CardDivider />
       <CardContent className="pt-0 px-0">
         <ul>
-          {MOCK_CIRCLES.slice(0, 5).map((circle, idx, arr) => (
+          {groups.slice(0, 5).map((circle, idx, arr) => (
             <Link href={`/groups/${circle.id}`} key={circle.id}>
               <li className="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm shrink-0">
@@ -364,17 +308,21 @@ function CirclesSection() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-zinc-400">
                     <span className="flex items-center gap-1">
-                      <Users size={10} /> {circle.members} members
+                      <Users size={10} /> {circle.membersCount} members
                     </span>
-                    <span>{circle.cycle}</span>
+                    <span>{circle.name}</span>
                     <span className="flex items-center gap-1">
-                      <Clock size={10} /> Payout {circle.nextPayout}
+                      <Clock size={10} /> Payout{" "}
+                      {new Date(circle.nextPayout).toLocaleDateString("en-NG", {
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </span>
                   </div>
                   <CardProgress
-                    value={circle.myTurn}
-                    max={circle.members}
-                    label={`Turn ${circle.myTurn} of ${circle.members}`}
+                    value={Number(myTurn || 0)}
+                    max={circle.membersCount}
+                    label={`Turn ${myTurn || 0} of ${circle.membersCount}`}
                     className="mt-2"
                   />
                 </div>
@@ -394,7 +342,11 @@ function CirclesSection() {
   );
 }
 
-function TransactionsSection() {
+function TransactionsSection({
+  transactions = [],
+}: {
+  transactions: ITransaction[];
+}) {
   return (
     <Card variant="default">
       <CardHeader>
@@ -405,16 +357,18 @@ function TransactionsSection() {
               Deposits, withdrawals &amp; contributions
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="rounded-lg text-emerald-700 hover:text-emerald-800"
-          >
-            View all <ChevronRight size={14} className="ml-1" />
-          </Button>
+          <Link href="/transactions/history" className="ml-auto">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-lg text-emerald-700 hover:text-emerald-800"
+            >
+              View all <ChevronRight size={14} className="ml-1" />
+            </Button>
+          </Link>
         </div>
       </CardHeader>
-      <CardContent className="px-0 pt-0">
+      <CardContent className="">
         <Table>
           <TableHeader>
             <TableRow>
@@ -425,17 +379,17 @@ function TransactionsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {MOCK_TRANSACTIONS.length === 0 ? (
+            {transactions.length === 0 ? (
               <TableEmpty
                 colSpan={4}
                 message="No transactions yet. Make your first deposit to get started."
               />
             ) : (
-              MOCK_TRANSACTIONS.map((tx, i) => (
+              transactions.map((tx, i) => (
                 <TableRow key={i} hoverable>
-                  <TableCell>{tx.description}</TableCell>
+                  {/* <TableCell>{tx.description}</TableCell> */}
                   <TableCell mono>{tx.amount}</TableCell>
-                  <TableCell muted>{tx.date}</TableCell>
+                  <TableCell muted>{tx.created_at}</TableCell>
                   <TableCell align="right">
                     <CardBadge
                       color={
@@ -519,11 +473,11 @@ function ReferralCard({ code }: { code: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function Dashboard() {
-  const user = await Auth.user();
-
-  const referralCode = (user as any)?.referral_code ?? "MT-XXXX";
+export default function Dashboard() {
+  const user = Auth.user() as unknown as IUser;
+  const referralCode = user?.referral_code ?? "MT-XXXX";
   const isVerified = Boolean((user as any)?.isVerified);
+  const activeGroup = user?.groups?.filter((g) => g.status === "active").length;
 
   return (
     <div className="min-h-full bg-zinc-50/50">
@@ -539,21 +493,30 @@ export default async function Dashboard() {
         {/* Top metric row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Balance card spans 2 cols */}
-          <BalanceCard />
+          <BalanceCard {...user} />
 
           <StatCard
             icon={Users}
             label="Active Circles"
-            value={String(MOCK_CIRCLES.length)}
-            sub="0 pending invites"
+            value={String(user?.groups?.length ?? 0)}
+            sub={`${String(user?.inviteReceived?.length || 0)} pending invites`}
             color="blue"
           />
 
           <StatCard
             icon={TrendingUp}
             label="Next Payout"
-            value="--"
-            sub="No active cycles"
+            value={
+              user?.next_due
+                ? new Date(user.next_due.due_by).toLocaleDateString("en-NG", {
+                    day: "numeric",
+                    month: "short",
+                  })
+                : "--"
+            }
+            sub={
+              activeGroup ? `${activeGroup} active cycles` : "No active cycles"
+            }
             color="emerald"
           />
         </div>
@@ -567,8 +530,8 @@ export default async function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: circles + transactions (2/3) */}
           <div className="lg:col-span-2 space-y-6">
-            <CirclesSection />
-            <TransactionsSection />
+            <CirclesSection {...user} />
+            <TransactionsSection {...user} />
           </div>
 
           {/* Right sidebar (1/3) */}

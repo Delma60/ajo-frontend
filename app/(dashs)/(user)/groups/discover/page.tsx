@@ -1,15 +1,7 @@
 "use client";
 
-import { useState, useMemo, useLayoutEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardBadge,
-  CardFooter,
-} from "@/components/ui/card";
+import { useState, useMemo, useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Users,
@@ -29,29 +21,10 @@ import {
 import Link from "next/link";
 import { Frequency, IGroup, PayoutOrder } from "@/lib/types/group.types";
 import { HTTPS } from "@/lib/http";
+import { formatNaira, freqLabel } from "@/lib/utils";
+import { GroupCardSkeleton } from "@/components/group-skeleton";
+import { GroupCard } from "@/components/group-item";
 
-function frequencyLabel(f: Frequency) {
-  return {
-    daily: "Daily",
-    weekly: "Weekly",
-    "bi-weekly": "Bi-weekly",
-    monthly: "Monthly",
-  }[f];
-}
-
-function payoutLabel(p: PayoutOrder) {
-  return {
-    rotational: "Rotational",
-    random: "Random draw",
-    bidding: "Bid-based",
-  }[p];
-}
-
-function trustColor(score: number) {
-  if (score >= 95) return "text-emerald-700 bg-emerald-50";
-  if (score >= 85) return "text-blue-700 bg-blue-50";
-  return "text-amber-700 bg-amber-50";
-}
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
 
@@ -73,9 +46,11 @@ const SORT_OPTIONS = [
 type FreqFilter = (typeof FREQUENCIES)[number];
 type SortOption = (typeof SORT_OPTIONS)[number];
 
-// ─── Featured Hero Card ───────────────────────────────────────────────────────
-
 function FeaturedCard({ group }: { group: IGroup }) {
+  const spotsLeft = Number(group.max_members) - Number(group.membersCount);
+  const trustScore = (group as any).trustScore ?? 100;
+  const totalPaidOut = (group as any).totalPaidOut ?? 0;
+
   return (
     <div
       className="relative rounded-2xl overflow-hidden border border-emerald-200 p-6 flex flex-col gap-4"
@@ -84,7 +59,6 @@ function FeaturedCard({ group }: { group: IGroup }) {
           "linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%)",
       }}
     >
-      {/* bg blobs */}
       <div
         className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-10"
         style={{
@@ -113,7 +87,7 @@ function FeaturedCard({ group }: { group: IGroup }) {
             {group.name}
           </h3>
           <p className="text-emerald-100/70 text-[13px] mt-1 max-w-sm leading-relaxed">
-            {group.description.slice(0, 110)}…
+            {(group.description || "No description provided.").slice(0, 110)}…
           </p>
         </div>
         <div className="text-right shrink-0">
@@ -121,10 +95,10 @@ function FeaturedCard({ group }: { group: IGroup }) {
             Contribution
           </p>
           <p className="text-2xl font-bold text-white">
-            {formatNaira(group.contribution)}
+            {formatNaira(Number(group.contribution) || 0)}
           </p>
           <p className="text-emerald-300/60 text-[12px]">
-            /{frequencyLabel(group.frequency).toLowerCase()}
+            /{freqLabel(group.frequency).toLowerCase()}
           </p>
         </div>
       </div>
@@ -136,15 +110,15 @@ function FeaturedCard({ group }: { group: IGroup }) {
         </div>
         <div className="flex items-center gap-1.5 text-[12px] text-emerald-200/70">
           <ShieldCheck size={12} />
-          {group.trustScore}% trust
+          {trustScore}% trust
         </div>
         <div className="flex items-center gap-1.5 text-[12px] text-emerald-200/70">
           <TrendingUp size={12} />
-          {formatNaira(group.totalPaidOut)} paid out
+          {formatNaira(totalPaidOut)} paid out
         </div>
-        {group.spotsLeft <= 3 && (
+        {spotsLeft > 0 && spotsLeft <= 3 && (
           <span className="text-[11px] font-semibold text-amber-300 bg-amber-400/10 rounded-full px-2.5 py-0.5">
-            {group.spotsLeft} spot{group.spotsLeft !== 1 ? "s" : ""} left!
+            {spotsLeft} spot{spotsLeft !== 1 ? "s" : ""} left!
           </span>
         )}
       </div>
@@ -167,140 +141,6 @@ function FeaturedCard({ group }: { group: IGroup }) {
   );
 }
 
-// ─── Group Card ───────────────────────────────────────────────────────────────
-
-function GroupCard({ group }: { group: IGroup }) {
-  const fillPct = Math.round((group.membersCount / group.max_members) * 100);
-  const almostFull = group.spotsLeft <= 2;
-
-  return (
-    <Card
-      variant="default"
-      className="flex flex-col hover:border-emerald-300 hover:-translate-y-px transition-all duration-150"
-    >
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0 select-none">
-              {group.name.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <CardTitle className="truncate">{group.name}</CardTitle>
-                {group.new && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700 bg-violet-50 rounded-full px-2 py-0.5">
-                    <Sparkles size={9} />
-                    New
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
-                Admin: {group.adminName}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {group.isPrivate ? (
-              <Lock size={13} className="text-zinc-400" />
-            ) : (
-              <Globe size={13} className="text-zinc-400" />
-            )}
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="flex-1 flex flex-col gap-3">
-        <p className="text-[13px] text-zinc-500 leading-relaxed line-clamp-2">
-          {group.description}
-        </p>
-
-        {/* Tags */}
-        <div className="flex gap-1.5 flex-wrap">
-          {group.tags.map((tag) => (
-            <span
-              key={tag}
-              className="text-[10px] font-medium text-zinc-500 bg-zinc-100 rounded-full px-2.5 py-0.5"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-2 gap-2 text-[12px]">
-          <div className="bg-zinc-50 rounded-xl px-3 py-2">
-            <p className="text-zinc-400 text-[10px] uppercase tracking-wide font-medium mb-0.5">
-              Contribution
-            </p>
-            <p className="font-bold text-zinc-900 text-[14px]">
-              {formatNaira(group.contribution)}
-              <span className="text-zinc-400 font-normal text-[11px]">
-                /{frequencyLabel(group.frequency).toLowerCase()}
-              </span>
-            </p>
-          </div>
-          <div className="bg-zinc-50 rounded-xl px-3 py-2">
-            <p className="text-zinc-400 text-[10px] uppercase tracking-wide font-medium mb-0.5">
-              Payout
-            </p>
-            <p className="font-semibold text-zinc-700 text-[13px]">
-              {payoutLabel(group.payout_order)}
-            </p>
-          </div>
-        </div>
-
-        {/* Member fill bar */}
-        <div>
-          <div className="flex items-center justify-between text-[11px] mb-1.5">
-            <span className="text-zinc-400 flex items-center gap-1">
-              <Users size={10} /> {group.membersCount}/{group.max_members}{" "}
-              members
-            </span>
-            {almostFull ? (
-              <span className="text-amber-600 font-semibold">
-                {group.spotsLeft} spot{group.spotsLeft !== 1 ? "s" : ""} left
-              </span>
-            ) : (
-              <span className="text-zinc-400">{group.spotsLeft} open</span>
-            )}
-          </div>
-          <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                fillPct >= 90 ? "bg-amber-500" : "bg-emerald-600"
-              }`}
-              style={{ width: `${fillPct}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Trust score + total paid */}
-        <div className="flex items-center gap-3 text-[11px]">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${trustColor(group.trustScore)}`}
-          >
-            <ShieldCheck size={10} />
-            {group.trustScore}% trust
-          </span>
-          <span className="text-zinc-400 flex items-center gap-1">
-            <TrendingUp size={10} />
-            {formatNaira(group.totalPaidOut)} paid out
-          </span>
-        </div>
-      </CardContent>
-
-      <CardFooter className="border-t border-zinc-100 pt-3">
-        <Button variant="primary" size="sm" className="rounded-xl flex-1">
-          Request to Join
-        </Button>
-        <Button variant="ghost" size="sm" className="rounded-xl gap-1">
-          Details <ChevronRight size={13} />
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-}
-
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState({ query }: { query: string }) {
@@ -310,7 +150,7 @@ function EmptyState({ query }: { query: string }) {
         <Search size={24} className="text-zinc-400" />
       </div>
       <p className="text-zinc-700 font-medium">
-        No circles found for &ldquo;{query}&rdquo;
+        No circles found for &ldquo;{query || "search term"}&rdquo;
       </p>
       <p className="text-zinc-400 text-sm mt-1">
         Try different keywords or clear your filters.
@@ -323,63 +163,80 @@ function EmptyState({ query }: { query: string }) {
 
 export default function DiscoverPage() {
   const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [freqFilter, setFreqFilter] = useState<FreqFilter>("all");
-  const [sort, setSort] = useState<SortOption>("Featured");
+
+  const [sort, setSort] = useState<SortOption>("Newest");
   const [showFilters, setShowFilters] = useState(false);
   const [groups, setGroups] = useState<IGroup[]>([]);
 
-  const featuredGroups = groups.filter((g) => g.featured);
+  // Using custom any type fallback due to features missing from actual db model
+  const featuredGroups = groups.filter((g) => (g as any).featured);
 
   const filtered = useMemo(() => {
+    if (!Array.isArray(groups) || groups.length === 0) return [];
+    if (search === "" && freqFilter === "all" && sort === "Newest")
+      return groups;
+
     let list = groups.filter((g) => {
       const matchFreq =
-        freqFilter === "all" || frequencyLabel(g.frequency) === freqFilter;
+        freqFilter === "all" ||
+        freqLabel(g.frequency).toLowerCase() === freqFilter;
       const matchSearch =
-        g.name.toLowerCase().includes(search.toLowerCase()) ||
-        g.description.toLowerCase().includes(search.toLowerCase());
-      // g.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
+        (g.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (g.description || "").toLowerCase().includes(search.toLowerCase());
 
       return matchSearch && matchFreq;
     });
 
     switch (sort) {
       case "Newest":
-        // list = list.filter((g) => g.new).concat(list.filter((g) => !g.new));
-        list = list.sort(
+        list = [...list].sort(
           (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+            new Date(b.created_at || 0).getTime() -
+            new Date(a.created_at || 0).getTime(),
         );
         break;
       case "Spots left":
-        list = [...list].sort(
-          (a, b) =>
-            a.max_members - a.membersCount - (b.max_members - b.membersCount),
-        );
+        list = [...list].sort((a, b) => {
+          const aSpots =
+            Number(a.max_members || 0) - Number(a.membersCount || 0);
+          const bSpots =
+            Number(b.max_members || 0) - Number(b.membersCount || 0);
+          return aSpots - bSpots; // ASC
+        });
         break;
       case "Contribution ↑":
         list = [...list].sort(
-          (a, b) => Number(a.contribution) - Number(b.contribution),
+          (a, b) => Number(a.contribution || 0) - Number(b.contribution || 0),
         );
         break;
       case "Contribution ↓":
         list = [...list].sort(
-          (a, b) => Number(b.contribution) - Number(a.contribution),
+          (a, b) => Number(b.contribution || 0) - Number(a.contribution || 0),
         );
         break;
       default: // Featured first
-        list = list
-          .filter((g) => g.featured)
-          .concat(list.filter((g) => !g.featured));
+        list = [...list].sort((a, b) => {
+          const aFeatured = (a as any).featured ? 1 : 0;
+          const bFeatured = (b as any).featured ? 1 : 0;
+          return bFeatured - aFeatured;
+        });
     }
 
     return list;
-  }, [search, freqFilter, sort]);
+  }, [search, freqFilter, sort, groups]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     function fetchGroup() {
       HTTPS.get("/groups")
-        .then((res) => res.data as unknown as IGroup[])
-        .then((_groups) => setGroups(_groups));
+        .then((res) => {
+          // Fix Laravel API resource wrapping (extract array safely)
+          const fetchedData = res.data || [];
+          setGroups(Array.isArray(fetchedData) ? fetchedData : []);
+        })
+        .catch((err) => console.error("Failed to fetch groups", err))
+        .finally(() => setIsLoading(false));
     }
     fetchGroup();
   }, []);
@@ -443,7 +300,7 @@ export default function DiscoverPage() {
               />
               <input
                 type="text"
-                placeholder="Search circles by name, tag, or description…"
+                placeholder="Search circles by name or description…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-10 pl-8 pr-4 rounded-xl border-[1.5px] border-zinc-200 bg-white text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-700 focus:shadow-[0_0_0_3px_rgba(26,107,82,.10)] transition-all"
@@ -577,13 +434,23 @@ export default function DiscoverPage() {
         </div>
 
         {/* Cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.length === 0 ? (
-            <EmptyState query={search} />
-          ) : (
-            filtered.map((group) => <GroupCard key={group.id} group={group} />)
-          )}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <GroupCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.length === 0 ? (
+              <EmptyState query={search} />
+            ) : (
+              filtered.map((group) => (
+                <GroupCard key={group.id} group={group} />
+              ))
+            )}
+          </div>
+        )}
 
         {/* CTA footer */}
         <div className="rounded-2xl border border-dashed border-zinc-300 p-6 text-center space-y-2">
@@ -593,10 +460,16 @@ export default function DiscoverPage() {
           <p className="text-zinc-400 text-[13px]">
             Start your own circle and invite people you trust.
           </p>
-          <Button variant="outline" size="sm" className="mt-3 rounded-xl gap-2">
-            <Users size={14} />
-            Create a Circle
-          </Button>
+          <Link href="/groups/create">
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 rounded-xl gap-2"
+            >
+              <Users size={14} />
+              Create a Circle
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

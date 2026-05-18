@@ -12,7 +12,7 @@ export interface ITokenDriver {
 // once per request via `seedServerCookies()`, and the driver reads from it.
 
 const _serverCookieCache = new Map<string, string>();
-// let _isSeeded = false;
+let _isSeeded = false;
 
 /**
  * Call this once in your root server layout (or any async server component)
