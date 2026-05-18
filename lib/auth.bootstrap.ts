@@ -33,7 +33,7 @@ Auth.extend<AppUser>("web", {
             console.error("[Auth] Error", err);
         },
     },
-});
+}).ready();
 
 
-Auth.fetchUser();
+Auth.ready();

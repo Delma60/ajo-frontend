@@ -121,7 +121,7 @@ export class Guard<TUser extends AuthUser = AuthUser> {
 
     public async refreshUser(): Promise<TUser | null> {
         this._setUser(null)
-        return this.refreshUser();
+        return this._fetchUser();
     }
 
     private static _defaultRoleFactory(user: AuthUser): Role {
@@ -291,5 +291,14 @@ export class Guard<TUser extends AuthUser = AuthUser> {
             await this._fetchUser();
         }
         await this.cfg.events.onLogin?.(this._user as TUser, loginData.token);
+    }
+
+    private _readyPromise: Promise<void> | null = null;
+
+    public ready(): Promise<void> {
+    if (!this._readyPromise) {
+        this._readyPromise = this.fetchUser().then(() => undefined);
+    }
+    return this._readyPromise;
     }
 }

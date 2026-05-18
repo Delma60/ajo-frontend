@@ -48,4 +48,7 @@ export const Auth = {
     fromServer(token: string, expiresIn?: number): void {
         Auth.guard(_defaultGuard).setToken(token, expiresIn);
     },
+    ready(): Promise<void> {
+    return Auth.guard(_defaultGuard).fetchUser().then(() => undefined);
+  },
 };

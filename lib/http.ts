@@ -85,6 +85,10 @@ export class HttpClient {
         return this.withHeaders({ Authorization: `${type} ${token}` });
     }
 
+    public withoutToken(): HttpClient {
+        return this.withHeaders({ "X-Skip-Auth": "true" });
+    }
+
     public withTimeout(ms: number): HttpClient {
         return this.clone({ timeoutMs: ms });
     }
@@ -300,13 +304,27 @@ export const HTTPS = new HttpClient({
     },
 })
     .addRequestInterceptor((init, url) => {
-        const token = Auth.token();
-        if (token) {
-            init.headers = {
-                ...init.headers,
-                Authorization: `Bearer ${token}`,
-            };
+        // Safely cast headers since we strictly use Record<string, string> in HttpClient
+        const headers = (init.headers as Record<string, string>) || {};
+
+        // 1. If explicitly asked to skip auth, remove the flag and bypass token attachment
+        if (headers["X-Skip-Auth"]) {
+            delete headers["X-Skip-Auth"];
+            init.headers = headers;
+            return init;
         }
+
+        // 2. Only read from Auth.token() if no Authorization header is already stated
+        if (!headers["Authorization"] && !headers["authorization"]) {
+            const token = Auth.token();
+            if (token) {
+                init.headers = {
+                    ...headers,
+                    Authorization: `Bearer ${token}`,
+                };
+            }
+        }
+        
         return init;
     })
     .addResponseInterceptor((response) => {

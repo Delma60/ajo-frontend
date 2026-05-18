@@ -33,27 +33,8 @@ import { IGroup } from "@/lib/types/group.types";
 import { Auth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { IUser } from "@/lib/types/user.types";
-import { formatNaira } from "@/lib/utils";
+import { daysUntil, formatNaira, freqLabel } from "@/lib/utils";
 
-function frequencyLabel(f: IGroup["frequency"]) {
-  return {
-    daily: "Daily",
-    weekly: "Weekly",
-    "bi-weekly": "Bi-weekly",
-    monthly: "Monthly",
-  }[f];
-}
-
-function daysUntil(dateStr: string | Date) {
-  const diff = new Date(dateStr).getTime() - Date.now();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  if (days < 0) return "Overdue";
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return `${days} days`;
-}
-
-// ─── Payment alert banner ─────────────────────────────────────────────────────
 
 function PaymentDueBanner({
   groups = [],
@@ -157,7 +138,7 @@ function CircleRow({
             </span>
             <span>
               {formatNaira(Number(group.contribution))} ·{" "}
-              {frequencyLabel(group.frequency)}
+              {freqLabel(group.frequency)}
             </span>
             {currentMember?.myTurn && (
               <span>
