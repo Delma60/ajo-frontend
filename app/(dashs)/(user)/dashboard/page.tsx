@@ -40,6 +40,7 @@ import {
   // Link as LinkIcon,
 } from "lucide-react";
 import { Auth } from "@/lib/auth";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { IBalance, IUser } from "@/lib/types/user.types";
 import { formatNaira } from "@/lib/utils";
@@ -179,10 +180,10 @@ function StatCard({
 
 function QuickActions() {
   const actions = [
-    { icon: CircleDollarSign, label: "Deposit", color: "emerald" as const },
-    { icon: ArrowUpRight, label: "Withdraw", color: "amber" as const },
-    { icon: Users, label: "New Circle", color: "blue" as const },
-    { icon: Layers, label: "History", color: "rose" as const },
+    { icon: CircleDollarSign, label: "Deposit", color: "emerald" as const, href:"/" },
+    { icon: ArrowUpRight, label: "Withdraw", color: "amber" as const, href:"/withdraw" },
+    { icon: Users, label: "New Circle", color: "blue" as const, href:"/groups/create" },
+    { icon: Layers, label: "History", color: "rose" as const, href:"/transactions/history" },
   ];
 
   return (
@@ -192,7 +193,7 @@ function QuickActions() {
       </CardHeader>
       <CardContent className="pt-3">
         <div className="grid grid-cols-4   gap-2">
-          {actions.map(({ icon: Icon, label, color }) => {
+          {actions.map(({ icon: Icon, label, color, href }) => {
             const colorMap = {
               emerald: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
               amber: "bg-amber-50 text-amber-700 hover:bg-amber-100",
@@ -200,13 +201,14 @@ function QuickActions() {
               rose: "bg-rose-50 text-rose-700 hover:bg-rose-100",
             };
             return (
-              <button
-                key={label}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${colorMap[color]} cursor-pointer`}
-              >
-                <Icon size={20} />
-                <span className="text-[11px] font-semibold">{label}</span>
-              </button>
+               <Link href={href} key={label}>
+                <button
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${colorMap[color]} cursor-pointer`}
+                >
+                  <Icon size={20} />
+                  <span className="text-[11px] font-semibold">{label}</span>
+                </button>
+              </Link>
             );
           })}
         </div>
@@ -474,7 +476,10 @@ function ReferralCard({ code }: { code: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const user = Auth.user() as unknown as IUser;
+  const [user, setUser] = useState<IUser | null>(null);
+  useEffect(() => {
+    setUser(Auth.user() as unknown as IUser);
+  }, []);
   const referralCode = user?.referral_code ?? "MT-XXXX";
   const isVerified = Boolean((user as any)?.isVerified);
   const activeGroup = user?.groups?.filter((g) => g.status === "active").length;
@@ -485,7 +490,7 @@ export default function Dashboard() {
         {/* { JSON.stringify(user) } */}
 
         {/* Greeting */}
-        <GreetingSection name={String(user?.name) ?? "Friend"} />
+        <GreetingSection name={user?.name || "Friend"} />
 
         {/* Verification notice */}
         {!isVerified && <NoticeCard />}
@@ -493,7 +498,7 @@ export default function Dashboard() {
         {/* Top metric row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Balance card spans 2 cols */}
-          <BalanceCard {...user} />
+          {user && <BalanceCard {...user} />}
 
           <StatCard
             icon={Users}
@@ -530,8 +535,10 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: circles + transactions (2/3) */}
           <div className="lg:col-span-2 space-y-6">
-            <CirclesSection {...user} />
-            <TransactionsSection {...user} />
+            {user && <CirclesSection groups={user.groups ?? []} id={user.id} />}
+            {user && (
+              <TransactionsSection transactions={user.transactions ?? []} />
+            )}
           </div>
 
           {/* Right sidebar (1/3) */}

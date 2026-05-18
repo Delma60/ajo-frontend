@@ -1,6 +1,5 @@
 import { Auth, Role } from "./auth";
 import type { AppUser } from "./app-user";
-import { redirect } from "next/navigation";
 
 Auth.extend<AppUser>("web", {
     driver: "cookie",
@@ -17,14 +16,12 @@ Auth.extend<AppUser>("web", {
     refreshThresholdSeconds: 1200,
     roleFactory: (user) => new Role(user.roles, user.permissions),
     events: {
-        
         onLogin: (user) => {
             console.log(`[Auth] Logged in as ${user.email}`);
             window.location.href = "/dashboard";
         },
         onLogout: () => {
             console.log("[Auth] Logged out");
-            // router.push("/login");
         },
         onTokenRefreshed: (token) => {
             console.log("[Auth] Token refreshed", token.slice(0, 10) + "…");
@@ -33,7 +30,8 @@ Auth.extend<AppUser>("web", {
             console.error("[Auth] Error", err);
         },
     },
-}).ready();
+});
 
-
-Auth.ready();
+// Module-level promise — created once, cached by the Guard internally.
+// Import this in AuthProvider and call React's `use()` to suspend on it.
+export const authReady: Promise<void> = Auth.ready();

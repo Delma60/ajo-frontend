@@ -30,8 +30,12 @@ import {
   LogOutIcon,
   ChevronRightIcon,
   Ticket,
+  TrendingUpIcon,
+  UserCircleIcon,
+  LifeBuoyIcon,
 } from "lucide-react";
 import { Auth } from "@/lib/auth";
+import type { IUser } from "@/lib/types/user.types";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -78,29 +82,43 @@ const MAIN_NAV: NavItem[] = [
     ]
   },
   {
-    label: "Wallet",
-    href: "/wallet",
-    icon: <WalletIcon size={18} />,
-  },
-  {
-    label: "Notifications",
-    href: "/notifications",
-    icon: <BellIcon size={18} />,
-    badge: 3,
-  },
+      label: "Investments",
+      href: "/investments",
+      icon: <TrendingUpIcon size={18} />,
+      matchPrefix: true,
+      children: [
+        { label: "Explore", href: "/investments" },
+        { label: "My Portfolio", href: "/investments/portfolio" },
+      ],
+    },
 ];
 
 const SETTINGS_NAV: NavItem[] = [
+  {
+    label: "Profile & KYC",
+    href: "/settings/profile",
+    icon: <UserCircleIcon size={18} />,
+    matchPrefix: true,
+    children: [
+      { label: "My Profile", href: "/settings/profile" },
+      { label: "Identity Verification", href: "/settings/kyc" },
+      { label: "Security", href: "/settings/security" },
+    ],
+  },
   {
     label: "Settings",
     href: "/settings",
     icon: <SettingsIcon size={18} />,
     matchPrefix: true,
     children: [
-      { label: "Profile", href: "/settings/profile" },
-      { label: "Security", href: "/settings/security" },
       { label: "Notifications", href: "/settings/notifications" },
+      { label: "Linked Banks", href: "/settings/banks" },
     ],
+  },
+  {
+    label: "Help & Support",
+    href: "/support",
+    icon: <LifeBuoyIcon size={18} />,
   },
 ];
 
@@ -325,7 +343,18 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = Auth.user();
+  const [user, setUser] = useState<IUser | null>(null);
+  useEffect(() => {
+    setUser(Auth.user() as unknown as IUser);
+  }, []);
+  // Compute initials from user name
+  function getInitials(name: string | undefined) {
+    if (!name) return "";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0][0]?.toUpperCase() || "";
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
   return (
     <SidebarProvider defaultOpen persist>
       <SidebarLayout>
@@ -375,9 +404,9 @@ export default function DashboardLayout({
 
           <SidebarFooter>
             <SidebarUser
-              name={String(user?.name)}
-              email={String(user?.email)}
-              initials="AO"
+              name={user?.name || ""}
+              email={user?.email || ""}
+              initials={getInitials(user?.name)}
             />
           </SidebarFooter>
         </Sidebar>
