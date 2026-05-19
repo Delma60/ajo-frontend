@@ -24,7 +24,10 @@ import { HTTPS } from "@/lib/http";
 import { formatNaira, freqLabel } from "@/lib/utils";
 import { GroupCardSkeleton } from "@/components/group-skeleton";
 import { GroupCard } from "@/components/group-item";
-
+import {
+  Filter as FilterComponent,
+  FilterValues,
+} from "@/components/ui/filter";
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
 
@@ -164,10 +167,12 @@ function EmptyState({ query }: { query: string }) {
 export default function DiscoverPage() {
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [freqFilter, setFreqFilter] = useState<FreqFilter>("all");
-
-  const [sort, setSort] = useState<SortOption>("Newest");
-  const [showFilters, setShowFilters] = useState(false);
+  // const [freqFilter, setFreqFilter] = useState<FreqFilter>("all");
+  const [filterValue, setFilterValue] = useState<FilterValues>({
+    sort: "newest",
+    freq: "all",
+  });
+  // const [sort, setSort] = useState<SortOption>("Newest");
   const [groups, setGroups] = useState<IGroup[]>([]);
 
   // Using custom any type fallback due to features missing from actual db model
@@ -175,13 +180,17 @@ export default function DiscoverPage() {
 
   const filtered = useMemo(() => {
     if (!Array.isArray(groups) || groups.length === 0) return [];
-    if (search === "" && freqFilter === "all" && sort === "Newest")
+    if (
+      search === "" &&
+      filterValue.freq === "all" &&
+      filterValue.sort === "newest"
+    )
       return groups;
 
     let list = groups.filter((g) => {
       const matchFreq =
-        freqFilter === "all" ||
-        freqLabel(g.frequency).toLowerCase() === freqFilter;
+        filterValue.freq === "all" ||
+        freqLabel(g.frequency).toLowerCase() === filterValue.freq;
       const matchSearch =
         (g.name || "").toLowerCase().includes(search.toLowerCase()) ||
         (g.description || "").toLowerCase().includes(search.toLowerCase());
@@ -189,8 +198,8 @@ export default function DiscoverPage() {
       return matchSearch && matchFreq;
     });
 
-    switch (sort) {
-      case "Newest":
+    switch (filterValue.sort) {
+      case "newest":
         list = [...list].sort(
           (a, b) =>
             new Date(b.created_at || 0).getTime() -
@@ -225,7 +234,7 @@ export default function DiscoverPage() {
     }
 
     return list;
-  }, [search, freqFilter, sort, groups]);
+  }, [search, filterValue, groups]);
 
   useEffect(() => {
     function fetchGroup() {
@@ -273,7 +282,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* Featured section */}
-        {featuredGroups.length > 0 && !search && freqFilter === "all" && (
+        {featuredGroups.length > 0 && !search && filterValue.freq === "all" && (
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <Zap size={14} className="text-emerald-700" />
@@ -288,150 +297,36 @@ export default function DiscoverPage() {
             </div>
           </section>
         )}
-
-        {/* Search + Filters */}
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row gap-2">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-              />
-              <input
-                type="text"
-                placeholder="Search circles by name or description…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-10 pl-8 pr-4 rounded-xl border-[1.5px] border-zinc-200 bg-white text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-700 focus:shadow-[0_0_0_3px_rgba(26,107,82,.10)] transition-all"
-              />
-            </div>
-
-            {/* Filter toggle */}
-            <button
-              onClick={() => setShowFilters((p) => !p)}
-              className={`h-10 px-4 rounded-xl border-[1.5px] text-sm font-medium flex items-center gap-2 transition-all ${
-                showFilters
-                  ? "border-emerald-700 text-emerald-700 bg-emerald-50"
-                  : "border-zinc-200 text-zinc-600 bg-white hover:border-zinc-300"
-              }`}
-            >
-              <Filter size={14} />
-              Filters
-            </button>
-          </div>
-
-          {/* Expanded filters */}
-          {showFilters && (
-            <div className="flex flex-wrap gap-4 p-4 bg-white rounded-2xl border border-zinc-200">
-              {/* Frequency */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-2">
-                  Frequency
-                </p>
-                <div className="flex items-center gap-1 bg-zinc-100 rounded-xl p-1">
-                  {FREQUENCIES.map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setFreqFilter(f)}
-                      className={`px-3 py-1.5 rounded-lg text-[12px] font-medium capitalize transition-all ${
-                        freqFilter === f
-                          ? "bg-white shadow-sm text-zinc-900"
-                          : "text-zinc-500 hover:text-zinc-700"
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-2">
-                  Sort by
-                </p>
-                <div className="flex items-center gap-1 bg-zinc-100 rounded-xl p-1 flex-wrap">
-                  {SORT_OPTIONS.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setSort(s)}
-                      className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
-                        sort === s
-                          ? "bg-white shadow-sm text-zinc-900"
-                          : "text-zinc-500 hover:text-zinc-700"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Quick freq pills (when filters collapsed) */}
-          {!showFilters && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {FREQUENCIES.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFreqFilter(f)}
-                  className={`text-[12px] font-medium px-3 py-1.5 rounded-full transition-all ${
-                    freqFilter === f
-                      ? "bg-emerald-800 text-white"
-                      : "bg-white border border-zinc-200 text-zinc-600 hover:border-zinc-300"
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-              <span className="mx-1 w-px h-4 bg-zinc-200" />
-              <div className="flex items-center gap-1 bg-zinc-100 rounded-full px-3 py-1.5">
-                <Clock size={11} className="text-zinc-400" />
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortOption)}
-                  className="text-[12px] font-medium text-zinc-600 bg-transparent outline-none cursor-pointer"
-                >
-                  {SORT_OPTIONS.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Results count */}
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] text-zinc-500">
-            Showing{" "}
-            <span className="font-semibold text-zinc-900">
-              {filtered.length}
-            </span>{" "}
-            circle{filtered.length !== 1 ? "s" : ""}
-            {search && (
-              <>
-                {" "}
-                for &ldquo;
-                <span className="font-medium text-emerald-700">{search}</span>
-                &rdquo;
-              </>
-            )}
-          </p>
-          {(search || freqFilter !== "all") && (
-            <button
-              onClick={() => {
-                setSearch("");
-                setFreqFilter("all");
-              }}
-              className="text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+        <FilterComponent
+          groups={[
+            {
+              key: "freq",
+              label: "Frequency",
+              options: [
+                { value: "all", label: "All" },
+                { value: "daily", label: "Daily" },
+                { value: "weekly", label: "Weekly" },
+                { value: "bi-weekly", label: "Bi-weekly" },
+                { value: "monthly", label: "Monthly" },
+              ],
+            },
+            {
+              key: "sort",
+              label: "Sort by",
+              options: [
+                { value: "newest", label: "Newest" },
+                { value: "contribution_asc", label: "Contribution ↑" },
+                { value: "spots", label: "Spots left" },
+              ],
+            },
+          ]}
+          quickGroup="freq"
+          values={filterValue}
+          onChange={setFilterValue}
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search circles by name…"
+        />
 
         {/* Cards grid */}
         {isLoading ? (

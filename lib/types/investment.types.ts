@@ -10,16 +10,20 @@ export interface Investment {
     
     // Financials
     amount: number; // Could be target_amount or total_pool
-    minimum_investment?: number;
+    min_investment?: number;
     roi_percentage?: number; 
+    risk: "Very Low" | "Low" | "Moderate" | "High";
+    funded_percentage:number
     
     // Lifecycle
     status: 'pending' | 'active' | 'completed' | 'cancelled';
     start_date: string | null;
     end_date: string | null;
+    duration:string|null;
+    expected_returns:number
     
     // Relationships (Loaded via InvestmentResource)
-    users?: IUser[]; 
+    investors?: IUser[]; 
     
     // If you are passing pivot data from the investment_user table
     pivot?: InvestmentUserPivot;
@@ -27,11 +31,14 @@ export interface Investment {
     // Timestamps
     created_at: string;
     updated_at: string;
+
+    is_featured:boolean
 }
 
 export interface InvestmentUserPivot {
     investment_id: number;
     user_id: number;
+    users?: IUser[]; 
     amount_invested: number;
     expected_returns?: number;
     status?: string;

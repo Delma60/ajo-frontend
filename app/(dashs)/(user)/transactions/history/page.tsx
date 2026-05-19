@@ -33,8 +33,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HTTPS } from "@/lib/http";
-import { ITransaction, TxStatus, TxType, Direction } from "@/lib/types/transaction.types";
+import {
+  ITransaction,
+  TxStatus,
+  TxType,
+  Direction,
+} from "@/lib/types/transaction.types";
 import { formatNaira } from "@/lib/utils";
+import { Filter } from "@/components/ui/filter";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -51,7 +57,10 @@ function formatAmount(amount: string | number) {
 function formatDate(dateStr: string, opts?: Intl.DateTimeFormatOptions) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("en-NG", opts ?? { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString(
+    "en-NG",
+    opts ?? { day: "numeric", month: "short", year: "numeric" },
+  );
 }
 
 function formatTime(dateStr: string) {
@@ -61,7 +70,9 @@ function formatTime(dateStr: string) {
 }
 
 // Group transactions by date label
-function groupByDate(txs: ITransaction[]): { label: string; items: ITransaction[] }[] {
+function groupByDate(
+  txs: ITransaction[],
+): { label: string; items: ITransaction[] }[] {
   const groups: Record<string, ITransaction[]> = {};
   const today = new Date();
   const yesterday = new Date(today);
@@ -72,7 +83,12 @@ function groupByDate(txs: ITransaction[]): { label: string; items: ITransaction[
     let label: string;
     if (d.toDateString() === today.toDateString()) label = "Today";
     else if (d.toDateString() === yesterday.toDateString()) label = "Yesterday";
-    else label = formatDate(tx.created_at, { day: "numeric", month: "long", year: "numeric" });
+    else
+      label = formatDate(tx.created_at, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
     if (!groups[label]) groups[label] = [];
     groups[label].push(tx);
   }
@@ -81,21 +97,50 @@ function groupByDate(txs: ITransaction[]): { label: string; items: ITransaction[
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<TxStatus, { icon: React.ElementType; color: string; bg: string; label: string }> = {
-  success: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", label: "Success" },
-  pending: { icon: Clock, color: "text-amber-500", bg: "bg-amber-50", label: "Pending" },
-  processing: { icon: RefreshCw, color: "text-blue-500", bg: "bg-blue-50", label: "Processing" },
-  failed: { icon: XCircle, color: "text-red-500", bg: "bg-red-50", label: "Failed" },
-  cancelled: { icon: AlertCircle, color: "text-zinc-400", bg: "bg-zinc-100", label: "Cancelled" },
+const STATUS_CONFIG: Record<
+  TxStatus,
+  { icon: React.ElementType; color: string; bg: string; label: string }
+> = {
+  success: {
+    icon: CheckCircle2,
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    label: "Success",
+  },
+  pending: {
+    icon: Clock,
+    color: "text-amber-500",
+    bg: "bg-amber-50",
+    label: "Pending",
+  },
+  processing: {
+    icon: RefreshCw,
+    color: "text-blue-500",
+    bg: "bg-blue-50",
+    label: "Processing",
+  },
+  failed: {
+    icon: XCircle,
+    color: "text-red-500",
+    bg: "bg-red-50",
+    label: "Failed",
+  },
+  cancelled: {
+    icon: AlertCircle,
+    color: "text-zinc-400",
+    bg: "bg-zinc-100",
+    label: "Cancelled",
+  },
 };
 
-const TYPE_CONFIG: Record<TxType, { icon: React.ElementType; label: string }> = {
-  charge: { icon: CreditCard, label: "Payment" },
-  payout: { icon: ArrowDownLeft, label: "Payout" },
-  refund: { icon: Repeat2, label: "Refund" },
-  topup: { icon: Wallet, label: "Top-up" },
-  transfer: { icon: Building2, label: "Transfer" },
-};
+const TYPE_CONFIG: Record<TxType, { icon: React.ElementType; label: string }> =
+  {
+    charge: { icon: CreditCard, label: "Payment" },
+    payout: { icon: ArrowDownLeft, label: "Payout" },
+    refund: { icon: Repeat2, label: "Refund" },
+    topup: { icon: Wallet, label: "Top-up" },
+    transfer: { icon: Building2, label: "Transfer" },
+  };
 
 // ─── Summary Stats ─────────────────────────────────────────────────────────────
 
@@ -113,23 +158,33 @@ function SummaryStats({ transactions }: { transactions: ITransaction[] }) {
   return (
     <div className="grid grid-cols-3 gap-3">
       <Card variant="flat" className="px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">Money In</p>
-        <p className="text-[15px] font-bold text-emerald-700">{formatNaira(totalIn)}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">
+          Money In
+        </p>
+        <p className="text-[15px] font-bold text-emerald-700">
+          {formatNaira(totalIn)}
+        </p>
         <div className="flex items-center gap-1 mt-0.5">
           <TrendingUp size={10} className="text-emerald-500" />
           <p className="text-[11px] text-zinc-400">Credits</p>
         </div>
       </Card>
       <Card variant="flat" className="px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">Money Out</p>
-        <p className="text-[15px] font-bold text-zinc-700">{formatNaira(totalOut)}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">
+          Money Out
+        </p>
+        <p className="text-[15px] font-bold text-zinc-700">
+          {formatNaira(totalOut)}
+        </p>
         <div className="flex items-center gap-1 mt-0.5">
           <TrendingDown size={10} className="text-zinc-400" />
           <p className="text-[11px] text-zinc-400">Debits</p>
         </div>
       </Card>
       <Card variant="flat" className="px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">Pending</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">
+          Pending
+        </p>
         <p className="text-[15px] font-bold text-amber-600">{pending}</p>
         <div className="flex items-center gap-1 mt-0.5">
           <Clock size={10} className="text-amber-400" />
@@ -171,12 +226,16 @@ function TxRow({ tx }: { tx: ITransaction }) {
             {tx.label || tx.short_label || typeConf.label}
           </p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${status.color}`}>
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] font-medium ${status.color}`}
+            >
               <StatusIcon size={10} />
               {status.label}
             </span>
             <span className="text-zinc-300 text-[10px]">·</span>
-            <span className="text-[11px] text-zinc-400">{formatTime(tx.created_at)}</span>
+            <span className="text-[11px] text-zinc-400">
+              {formatTime(tx.created_at)}
+            </span>
             {tx.reference && (
               <>
                 <span className="text-zinc-300 text-[10px]">·</span>
@@ -220,7 +279,10 @@ function TxSkeleton() {
   return (
     <div className="space-y-px">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+        <div
+          key={i}
+          className="flex items-center gap-4 px-5 py-4 animate-pulse"
+        >
           <div className="w-10 h-10 rounded-2xl bg-zinc-100 shrink-0" />
           <div className="flex-1 space-y-2">
             <div className="h-3.5 bg-zinc-100 rounded w-1/2" />
@@ -274,7 +336,8 @@ export default function TransactionHistoryPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<FilterType>("all");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
-  const [directionFilter, setDirectionFilter] = useState<FilterDirection>("all");
+  const [directionFilter, setDirectionFilter] =
+    useState<FilterDirection>("all");
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -290,7 +353,8 @@ export default function TransactionHistoryPage() {
     return transactions.filter((tx) => {
       if (typeFilter !== "all" && tx.type !== typeFilter) return false;
       if (statusFilter !== "all" && tx.status !== statusFilter) return false;
-      if (directionFilter !== "all" && tx.direction !== directionFilter) return false;
+      if (directionFilter !== "all" && tx.direction !== directionFilter)
+        return false;
       if (search) {
         const q = search.toLowerCase();
         const label = (tx.label || tx.short_label || "").toLowerCase();
@@ -304,7 +368,10 @@ export default function TransactionHistoryPage() {
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
   const hasActiveFilter =
-    typeFilter !== "all" || statusFilter !== "all" || directionFilter !== "all" || search !== "";
+    typeFilter !== "all" ||
+    statusFilter !== "all" ||
+    directionFilter !== "all" ||
+    search !== "";
 
   const clearFilters = () => {
     setTypeFilter("all");
@@ -318,10 +385,15 @@ export default function TransactionHistoryPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+          <h1
+            className="text-2xl font-bold text-zinc-900 tracking-tight"
+            style={{ fontFamily: "Georgia, serif" }}
+          >
             Transactions
           </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Your complete payment history</p>
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Your complete payment history
+          </p>
         </div>
 
         {/* Summary */}
@@ -329,109 +401,45 @@ export default function TransactionHistoryPage() {
           <SummaryStats transactions={transactions} />
         )}
 
-        {/* Search + Filters */}
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search by label or reference…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-10 pl-8 pr-4 rounded-xl border-[1.5px] border-zinc-200 bg-white text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-700 focus:shadow-[0_0_0_3px_rgba(26,107,82,.10)] transition-all"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => setShowFilters((p) => !p)}
-              className={`h-10 px-4 rounded-xl border-[1.5px] text-sm font-medium flex items-center gap-2 transition-all relative ${
-                showFilters || (hasActiveFilter && !search)
-                  ? "border-emerald-700 text-emerald-700 bg-emerald-50"
-                  : "border-zinc-200 text-zinc-600 bg-white hover:border-zinc-300"
-              }`}
-            >
-              <SlidersHorizontal size={14} />
-              Filters
-              {(typeFilter !== "all" || statusFilter !== "all" || directionFilter !== "all") && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-700 text-white text-[9px] font-bold flex items-center justify-center">
-                  {[typeFilter !== "all", statusFilter !== "all", directionFilter !== "all"].filter(Boolean).length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Direction pills (always visible) */}
-          <div className="flex gap-1.5 flex-wrap">
-            {DIRECTION_OPTIONS.map((d) => (
-              <button
-                key={d.value}
-                onClick={() => setDirectionFilter(d.value)}
-                className={`text-[12px] font-medium px-3 py-1.5 rounded-full transition-all ${
-                  directionFilter === d.value
-                    ? "bg-emerald-800 text-white"
-                    : "bg-white border border-zinc-200 text-zinc-600 hover:border-zinc-300"
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Expanded filters */}
-          {showFilters && (
-            <div className="p-4 bg-white rounded-2xl border border-zinc-200 space-y-4">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-2">Type</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {TYPE_OPTIONS.map((t) => (
-                    <button
-                      key={t.value}
-                      onClick={() => setTypeFilter(t.value)}
-                      className={`text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all ${
-                        typeFilter === t.value
-                          ? "bg-emerald-800 text-white"
-                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-2">Status</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {STATUS_OPTIONS.map((s) => (
-                    <button
-                      key={s.value}
-                      onClick={() => setStatusFilter(s.value)}
-                      className={`text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all ${
-                        statusFilter === s.value
-                          ? "bg-emerald-800 text-white"
-                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <Filter
+          data={transactions}
+          onResult={setTransactions}
+          searchFields={["label", "short_label", "reference"]}
+          searchPlaceholder="Search by label or reference…"
+          quickGroup="direction"
+          groups={[
+            {
+              key: "direction",
+              label: "Direction",
+              options: [
+                { value: "all", label: "All" },
+                { value: "credit", label: "Money In" },
+                { value: "debit", label: "Money Out" },
+              ],
+              match: (item, v) => (item as ITransaction).direction === v,
+            },
+            {
+              key: "status",
+              label: "Status",
+              multi: true, // ← picks multiple statuses at once
+              options: [
+                { value: "success", label: "Success" },
+                { value: "pending", label: "Pending" },
+                { value: "failed", label: "Failed" },
+              ],
+              match: (item, selected) =>
+                (selected as string[]).includes((item as ITransaction).status),
+            },
+          ]}
+        />
 
         {/* Results meta */}
         <div className="flex items-center justify-between">
           <p className="text-[13px] text-zinc-500">
-            <span className="font-semibold text-zinc-900">{filtered.length}</span> transaction
+            <span className="font-semibold text-zinc-900">
+              {filtered.length}
+            </span>{" "}
+            transaction
             {filtered.length !== 1 ? "s" : ""}
             {hasActiveFilter && " (filtered)"}
           </p>
@@ -468,12 +476,21 @@ export default function TransactionHistoryPage() {
             <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-3">
               <Wallet className="w-5 h-5 text-zinc-400" />
             </div>
-            <p className="text-sm font-medium text-zinc-600">No transactions found</p>
+            <p className="text-sm font-medium text-zinc-600">
+              No transactions found
+            </p>
             <p className="text-xs text-zinc-400 mt-1">
-              {hasActiveFilter ? "Try adjusting your filters" : "Your transactions will appear here"}
+              {hasActiveFilter
+                ? "Try adjusting your filters"
+                : "Your transactions will appear here"}
             </p>
             {hasActiveFilter && (
-              <Button size="sm" variant="secondary" className="mt-4 rounded-xl" onClick={clearFilters}>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-4 rounded-xl"
+                onClick={clearFilters}
+              >
                 Clear filters
               </Button>
             )}
@@ -485,7 +502,10 @@ export default function TransactionHistoryPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 mb-2 px-1">
                   {label}
                 </p>
-                <Card variant="default" className="overflow-hidden divide-y divide-zinc-50">
+                <Card
+                  variant="default"
+                  className="overflow-hidden divide-y divide-zinc-50"
+                >
                   {items.map((tx) => (
                     <TxRow key={tx.id} tx={tx} />
                   ))}

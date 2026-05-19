@@ -1,5 +1,6 @@
 import { IBank, ICard, IVirtualBank } from "./bank.types";
 import { IGroup } from "./group.types";
+import { Investment } from "./investment.types";
 import { IInvite } from "./invite.types";
 import { INotification } from "./notification.types";
 import { ITransaction } from "./transaction.types";
@@ -43,7 +44,8 @@ export interface IUser {
     code:string;
     invited_count:number;
     referred_users: IUser[]
-  }
+  },
+  investments?:Investment[]
 }
 
 export interface IBalance {
