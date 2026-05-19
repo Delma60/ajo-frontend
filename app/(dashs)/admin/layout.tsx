@@ -58,69 +58,51 @@ interface NavItem {
 const MAIN_NAV: NavItem[] = [
   {
     label: "Dashboard",
-    href: "/dashboard",
+    href: "/admin/dashboard",
     icon: <HomeIcon size={18} />,
   },
   {
-    label: "Circles",
-    href: "/groups",
+    label: "Customers",
+    href: "/admin/customers",
     icon: <UsersIcon size={18} />,
-    matchPrefix: true,
     children: [
-      { label: "My Circles", href: "/groups" },
-      { label: "Discover", href: "/groups/discover" },
-      { label: "Create Circle", href: "/groups/create" },
+      { label: "All customers", href: "/admin/customers" },
+      { label: "Groups", href: "/admin/groups" },
+      { label: "Transactions", href: "/admin/transactions" },
     ],
   },
   {
-    label: 'Transaction',
-    href: '/transactions',
-    icon: <Ticket size={18} />,
-    matchPrefix: true,
+    label: "Settlements",
+    href: "/admin/settlements",
+    icon: <WalletIcon size={18} />,
     children: [
-      { label: "History", href: "/transactions/history" },
-    ]
-  },
-  {
-      label: "Investments",
-      href: "/investments",
-      icon: <TrendingUpIcon size={18} />,
-      matchPrefix: true,
-      children: [
-        { label: "Explore", href: "/investments" },
-        { label: "My Portfolio", href: "/investments/portfolio" },
-      ],
-    },
-];
-
-const SETTINGS_NAV: NavItem[] = [
-  {
-    label: "Profile & KYC",
-    href: "/settings/profile",
-    icon: <UserCircleIcon size={18} />,
-    matchPrefix: true,
-    children: [
-      { label: "My Profile", href: "/settings/profile" },
-      { label: "Identity Verification", href: "/settings/kyc" },
-      { label: "Security", href: "/settings/security" },
+      { label: "All settlements", href: "/admin/settlements" },
+      { label: "Payouts", href: "/admin/settlements/payouts" },
+      { label: "Top-ups", href: "/admin/settlements/topups" },
     ],
   },
   {
-    label: "Settings",
-    href: "/settings",
-    icon: <SettingsIcon size={18} />,
-    matchPrefix: true,
+    label: "Investment",
+    href: "/admin/investment",
+    icon: <TrendingUpIcon size={18} />,
     children: [
-      { label: "Notifications", href: "/settings/notifications" },
-      { label: "Linked Banks", href: "/settings/banks" },
+      { label: "All investments", href: "/admin/investment" },
+      { label: "Plans", href: "/admin/investment/plans" },
     ],
   },
   {
-    label: "Help & Support",
-    href: "/support",
+    label: "Notifications",
+    href: "/admin/notifications",
+    icon: <BellIcon size={18} />,
+  },
+  {
+    label: "Support",
+    href: "/admin/support",
     icon: <LifeBuoyIcon size={18} />,
   },
 ];
+
+const SETTINGS_NAV: NavItem[] = [];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -353,8 +335,6 @@ export default function DashboardLayout({
     const parts = name.trim().split(" ");
     if (parts.length === 1) return parts[0][0]?.toUpperCase() || "";
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-
-    
   }
 
   return (

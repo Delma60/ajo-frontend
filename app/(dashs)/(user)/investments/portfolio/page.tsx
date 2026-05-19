@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
@@ -15,11 +16,16 @@ import { HTTPS } from "@/lib/http";
 import { Investment } from "@/lib/types/investment.types";
 import { Auth } from "@/lib/auth";
 import { IUser } from "@/lib/types/user.types";
-import {Filter} from "@/components/ui/filter";
+import { Filter } from "@/components/ui/filter";
+import Link from "next/link";
 
-export default async function PortfolioPage() {
+export default function PortfolioPage() {
   const user = Auth.user() as unknown as IUser;
-  const investments = user?.investments || [];
+  const [filtered, setFiltered] = useState<Investment[]>([]);
+
+  const investments = useMemo(() => {
+    return user?.investments || [];
+  }, [user?.investments]);
 
   const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
   const totalExpected =
@@ -50,9 +56,11 @@ export default async function PortfolioPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button className="gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white">
-            <Plus className="w-4 h-4" />
-          </Button>
+          <Link href="/investments/new">
+            <Button className="gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -149,6 +157,26 @@ export default async function PortfolioPage() {
           </CardContent>
         </Card>
       </div>
+      <Filter
+        data={investments || []}
+        onResult={setFiltered}
+        searchFields={["status", "title"]}
+        // searchPlaceholder=""
+        groups={[
+          {
+            label: "Status",
+            multi: true,
+            key: "status",
+            options: [
+              { label: "Active", value: "active" },
+              { label: "Pending", value: "pending" },
+              { label: "Completed", value: "completed" },
+            ],
+            match: (item, selected) =>
+              (selected as string[]).includes((item as Investment).status),
+          },
+        ]}
+      />
 
       {/* Investments Table with Filter */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
@@ -159,9 +187,7 @@ export default async function PortfolioPage() {
           >
             Investment History
           </h2>
-          <div className="w-full md:w-auto">
-            <Filter  />
-          </div>
+          <div className="w-full md:w-auto"></div>
         </div>
         <div className="overflow-x-auto p-3">
           <Table>
@@ -188,7 +214,7 @@ export default async function PortfolioPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {investments.length === 0 ? (
+              {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
@@ -198,7 +224,7 @@ export default async function PortfolioPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                investments.map((inv) => (
+                filtered.map((inv) => (
                   <TableRow
                     key={inv.id}
                     className="hover:bg-zinc-50/50 transition-colors"

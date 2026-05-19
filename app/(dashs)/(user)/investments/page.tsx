@@ -39,6 +39,7 @@ const categories = [
 
 export default function ExploreInvestmentsPage() {
   const [investments, setInvestments] = useState<Investment[] | null>([]);
+  const [filtered, setFiltered] = useState<Investment[] | null>([]);
 
   const featuredInvestment = investments?.filter((inv) => inv.is_featured)[0];
 
@@ -161,7 +162,7 @@ export default function ExploreInvestmentsPage() {
 
       <FilterComponent
         data={investments || []}
-        onResult={setInvestments}
+        onResult={setFiltered}
         groups={[
           {
             key: "category",
@@ -173,26 +174,44 @@ export default function ExploreInvestmentsPage() {
               { value: "Technology", label: "Technology" },
               { value: "Fixed Income", label: "Fixed Income" },
             ],
+            match: (item, v) => (v === "all" ? true : (item as Investment).category === v),
           },
           {
-            key: "sort",
-            label: "Sort by",
+            key: "duration",
+            label: "Duration",
             options: [
-              { value: "newest", label: "Newest" },
-              { value: "oldest", label: "Oldest" },
-              { value: "highest_roi", label: "Highest ROI" },
-              { value: "lowest_roi", label: "Lowest ROI" },
+              { value: "all", label: "All" },
+              { value: "3", label: "3 Months" },
+              { value: "6", label: "6 Months" },
+              { value: "12", label: "12 Months" },
+                { value: "24", label: "24 Months" },
+
             ],
+            match: (item, v) => (v === "all" ? true : (item as Investment).duration.toString() === v),
           },
+          {
+            key: 'risk',
+            label: 'Risk Level',
+            options: [
+              { value: 'all', label: 'All' },
+              { value: 'Very Low', label: 'Very Low' },
+              { value: 'Low', label: 'Low' },
+              { value: 'medium', label: 'Moderate' },
+              { value: 'High', label: 'High' },
+              { value: 'Very High', label: 'Very High' },
+            ],
+            match: (item, v) => (v === 'all' ? true : (item as Investment).risk.toLowerCase() === v?.toLowerCase()),
+          }
+          
         ]}
         quickGroup="freq"
-        searchFields={["name", "description", "category"]}
+        searchFields={["name", "description", "category", "title"]}
         searchPlaceholder="Search circles by name…"
       />
 
       {/* Investment Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {investments?.map((inv) => {
+        {filtered?.map((inv) => {
           // const Icon = inv.icon;
           return (
             <Card
@@ -267,18 +286,12 @@ export default function ExploreInvestmentsPage() {
         })}
       </div>
 
-      {investments?.length === 0 && (
+      {filtered?.length === 0 && (
         <div className="text-center py-12 px-4 border border-dashed border-zinc-200 rounded-xl bg-zinc-50">
           <p className="text-zinc-500 font-medium">
             No opportunities found in this category.
           </p>
-          <Button
-            variant="ghost"
-            onClick={() => setActiveCategory("All")}
-            className="text-emerald-700 mt-2"
-          >
-            Clear filters
-          </Button>
+          
         </div>
       )}
     </div>

@@ -210,7 +210,7 @@ function FilterSection({
 // ─── Filter (main) ────────────────────────────────────────────────────────────
 
 export function Filter<TData>({
-  data,
+  data=[],
   onResult,
   groups,
   sortOptions,
@@ -262,13 +262,24 @@ export function Filter<TData>({
   }, [data, search, values, groups, sortOptions, searchFields]);
 
   // Push to parent whenever result changes
-  const prevFilteredRef = useRef<TData[]>([]);
+  const onResultRef = useRef(onResult);
   useEffect(() => {
-  if (prevFilteredRef.current !== filtered) {
+    onResultRef.current = onResult;
+  });
+
+  // Push to parent whenever result changes
+const prevFilteredRef = useRef<TData[]>([]);
+const prevKeyRef = useRef<string>("");
+
+const filteredKey = JSON.stringify(filtered.map((_, i) => i) + filtered.length);
+
+useEffect(() => {
+  if (prevKeyRef.current !== filteredKey) {
+    prevKeyRef.current = filteredKey;
     prevFilteredRef.current = filtered;
-    onResult(filtered);
+    onResultRef.current(filtered);
   }
-}, [filtered, onResult]);
+}, [filtered, filteredKey]);
 
   // Close panel on outside click
   useEffect(() => {

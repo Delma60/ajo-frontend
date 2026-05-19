@@ -46,9 +46,6 @@ const SORT_OPTIONS = [
   "Contribution ↓",
 ] as const;
 
-type FreqFilter = (typeof FREQUENCIES)[number];
-type SortOption = (typeof SORT_OPTIONS)[number];
-
 function FeaturedCard({ group }: { group: IGroup }) {
   const spotsLeft = Number(group.max_members) - Number(group.membersCount);
   const trustScore = (group as any).trustScore ?? 100;
@@ -165,76 +162,13 @@ function EmptyState({ query }: { query: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DiscoverPage() {
-  const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  // const [freqFilter, setFreqFilter] = useState<FreqFilter>("all");
-  const [filterValue, setFilterValue] = useState<FilterValues>({
-    sort: "newest",
-    freq: "all",
-  });
-  // const [sort, setSort] = useState<SortOption>("Newest");
+  
   const [groups, setGroups] = useState<IGroup[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<IGroup[]>([]);
 
   // Using custom any type fallback due to features missing from actual db model
   const featuredGroups = groups.filter((g) => (g as any).featured);
-
-  const filtered = useMemo(() => {
-    if (!Array.isArray(groups) || groups.length === 0) return [];
-    if (
-      search === "" &&
-      filterValue.freq === "all" &&
-      filterValue.sort === "newest"
-    )
-      return groups;
-
-    let list = groups.filter((g) => {
-      const matchFreq =
-        filterValue.freq === "all" ||
-        freqLabel(g.frequency).toLowerCase() === filterValue.freq;
-      const matchSearch =
-        (g.name || "").toLowerCase().includes(search.toLowerCase()) ||
-        (g.description || "").toLowerCase().includes(search.toLowerCase());
-
-      return matchSearch && matchFreq;
-    });
-
-    switch (filterValue.sort) {
-      case "newest":
-        list = [...list].sort(
-          (a, b) =>
-            new Date(b.created_at || 0).getTime() -
-            new Date(a.created_at || 0).getTime(),
-        );
-        break;
-      case "Spots left":
-        list = [...list].sort((a, b) => {
-          const aSpots =
-            Number(a.max_members || 0) - Number(a.membersCount || 0);
-          const bSpots =
-            Number(b.max_members || 0) - Number(b.membersCount || 0);
-          return aSpots - bSpots; // ASC
-        });
-        break;
-      case "Contribution ↑":
-        list = [...list].sort(
-          (a, b) => Number(a.contribution || 0) - Number(b.contribution || 0),
-        );
-        break;
-      case "Contribution ↓":
-        list = [...list].sort(
-          (a, b) => Number(b.contribution || 0) - Number(a.contribution || 0),
-        );
-        break;
-      default: // Featured first
-        list = [...list].sort((a, b) => {
-          const aFeatured = (a as any).featured ? 1 : 0;
-          const bFeatured = (b as any).featured ? 1 : 0;
-          return bFeatured - aFeatured;
-        });
-    }
-
-    return list;
-  }, [search, filterValue, groups]);
 
   useEffect(() => {
     function fetchGroup() {
@@ -276,13 +210,13 @@ export default function DiscoverPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-[12px] text-zinc-400 bg-zinc-100 rounded-full px-3 py-1.5 font-medium">
-              {groups.length} circles available
+              {filteredGroups.length} circles available
             </span>
           </div>
         </div>
 
         {/* Featured section */}
-        {featuredGroups.length > 0 && !search && filterValue.freq === "all" && (
+        {featuredGroups.length > 0  && (
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <Zap size={14} className="text-emerald-700" />
@@ -298,6 +232,11 @@ export default function DiscoverPage() {
           </section>
         )}
         <FilterComponent
+          data={groups}
+          onResult={setFilteredGroups}
+          searchFields={["name", "description"]}
+          searchPlaceholder="Search by name or description…"
+          quickGroup="freq"
           groups={[
             {
               key: "freq",
@@ -309,23 +248,9 @@ export default function DiscoverPage() {
                 { value: "bi-weekly", label: "Bi-weekly" },
                 { value: "monthly", label: "Monthly" },
               ],
-            },
-            {
-              key: "sort",
-              label: "Sort by",
-              options: [
-                { value: "newest", label: "Newest" },
-                { value: "contribution_asc", label: "Contribution ↑" },
-                { value: "spots", label: "Spots left" },
-              ],
+              match: (item, v) => (item as any).frequency === v,
             },
           ]}
-          quickGroup="freq"
-          values={filterValue}
-          onChange={setFilterValue}
-          search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Search circles by name…"
         />
 
         {/* Cards grid */}
@@ -337,10 +262,10 @@ export default function DiscoverPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.length === 0 ? (
-              <EmptyState query={search} />
+            {filteredGroups.length === 0 ? (
+              <EmptyState query={"search"} />
             ) : (
-              filtered.map((group) => (
+              filteredGroups.map((group) => (
                 <GroupCard key={group.id} group={group} />
               ))
             )}
