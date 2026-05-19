@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowDownLeft,
@@ -204,7 +204,6 @@ function TxRow({ tx }: { tx: ITransaction }) {
   const StatusIcon = status.icon;
   const TypeIcon = typeConf.icon;
   const amount = parseFloat(String(tx.amount));
-
   return (
     <Link href={`/transactions/${tx.id}`}>
       <div className="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group">
@@ -304,81 +303,33 @@ type FilterType = TxType | "all";
 type FilterStatus = TxStatus | "all";
 type FilterDirection = Direction | "all";
 
-const TYPE_OPTIONS: { value: FilterType; label: string }[] = [
-  { value: "all", label: "All types" },
-  { value: "topup", label: "Top-up" },
-  { value: "charge", label: "Payment" },
-  { value: "payout", label: "Payout" },
-  { value: "transfer", label: "Transfer" },
-  { value: "refund", label: "Refund" },
-];
-
-const STATUS_OPTIONS: { value: FilterStatus; label: string }[] = [
-  { value: "all", label: "All status" },
-  { value: "success", label: "Success" },
-  { value: "pending", label: "Pending" },
-  { value: "processing", label: "Processing" },
-  { value: "failed", label: "Failed" },
-];
-
-const DIRECTION_OPTIONS: { value: FilterDirection; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "credit", label: "Money In" },
-  { value: "debit", label: "Money Out" },
-];
-
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TransactionHistoryPage() {
   const [transactions, setTransactions] = useState<ITransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<FilterType>("all");
-  const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
-  const [directionFilter, setDirectionFilter] =
-    useState<FilterDirection>("all");
-  const [showFilters, setShowFilters] = useState(false);
+  const [filtered, setFiltered] = useState<ITransaction[]>([]);
+ 
 
   useEffect(() => {
+    let mounted = true;
     HTTPS.get<ITransaction[]>("/transactions")
       .then(({ data }) => {
-        setTransactions(Array.isArray(data) ? data : []);
+        if (mounted) {
+          const txs = Array.isArray(data) ? data : [];
+          setTransactions(txs);
+          setFiltered(txs);
+        }
       })
-      .catch(() => setError("Failed to load transactions."))
-      .finally(() => setLoading(false));
+      .catch(() => mounted && setError("Failed to load transactions."))
+      .finally(() => mounted && setLoading(false));
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const filtered = useMemo(() => {
-    return transactions.filter((tx) => {
-      if (typeFilter !== "all" && tx.type !== typeFilter) return false;
-      if (statusFilter !== "all" && tx.status !== statusFilter) return false;
-      if (directionFilter !== "all" && tx.direction !== directionFilter)
-        return false;
-      if (search) {
-        const q = search.toLowerCase();
-        const label = (tx.label || tx.short_label || "").toLowerCase();
-        const ref = (tx.reference || "").toLowerCase();
-        if (!label.includes(q) && !ref.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [transactions, typeFilter, statusFilter, directionFilter, search]);
-
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
-
-  const hasActiveFilter =
-    typeFilter !== "all" ||
-    statusFilter !== "all" ||
-    directionFilter !== "all" ||
-    search !== "";
-
-  const clearFilters = () => {
-    setTypeFilter("all");
-    setStatusFilter("all");
-    setDirectionFilter("all");
-    setSearch("");
-  };
 
   return (
     <div className="min-h-full bg-zinc-50/40">
@@ -401,57 +352,41 @@ export default function TransactionHistoryPage() {
           <SummaryStats transactions={transactions} />
         )}
 
-        <Filter
-          data={transactions}
-          onResult={setTransactions}
-          searchFields={["label", "short_label", "reference"]}
-          searchPlaceholder="Search by label or reference…"
-          quickGroup="direction"
-          groups={[
-            {
-              key: "direction",
-              label: "Direction",
-              options: [
-                { value: "all", label: "All" },
-                { value: "credit", label: "Money In" },
-                { value: "debit", label: "Money Out" },
-              ],
-              match: (item, v) => (item as ITransaction).direction === v,
-            },
-            {
-              key: "status",
-              label: "Status",
-              multi: true, // ← picks multiple statuses at once
-              options: [
-                { value: "success", label: "Success" },
-                { value: "pending", label: "Pending" },
-                { value: "failed", label: "Failed" },
-              ],
-              match: (item, selected) =>
-                (selected as string[]).includes((item as ITransaction).status),
-            },
-          ]}
-        />
-
-        {/* Results meta */}
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] text-zinc-500">
-            <span className="font-semibold text-zinc-900">
-              {filtered.length}
-            </span>{" "}
-            transaction
-            {filtered.length !== 1 ? "s" : ""}
-            {hasActiveFilter && " (filtered)"}
-          </p>
-          {hasActiveFilter && (
-            <button
-              onClick={clearFilters}
-              className="text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors flex items-center gap-1"
-            >
-              <X size={11} /> Clear
-            </button>
-          )}
-        </div>
+        {!loading && transactions.length > 0 && (
+          <Filter
+            data={transactions}
+            onResult={setFiltered}
+            searchFields={["label", "short_label", "reference"]}
+            searchPlaceholder="Search by label or reference…"
+            quickGroup="direction"
+            groups={[
+              {
+                key: "direction",
+                label: "Direction",
+                options: [
+                  { value: "all", label: "All" },
+                  { value: "credit", label: "Money In" },
+                  { value: "debit", label: "Money Out" },
+                ],
+                match: (item, v) => (item as ITransaction).direction === v,
+              },
+              {
+                key: "status",
+                label: "Status",
+                multi: true, // ← picks multiple statuses at once
+                options: [
+                  { value: "success", label: "Success" },
+                  { value: "pending", label: "Pending" },
+                  { value: "failed", label: "Failed" },
+                ],
+                match: (item, selected) =>
+                  (selected as string[]).includes(
+                    (item as ITransaction).status,
+                  ),
+              },
+            ]}
+          />
+        )}
 
         {/* Transaction list */}
         {loading ? (
@@ -479,21 +414,6 @@ export default function TransactionHistoryPage() {
             <p className="text-sm font-medium text-zinc-600">
               No transactions found
             </p>
-            <p className="text-xs text-zinc-400 mt-1">
-              {hasActiveFilter
-                ? "Try adjusting your filters"
-                : "Your transactions will appear here"}
-            </p>
-            {hasActiveFilter && (
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-4 rounded-xl"
-                onClick={clearFilters}
-              >
-                Clear filters
-              </Button>
-            )}
           </Card>
         ) : (
           <div className="space-y-6">

@@ -262,9 +262,13 @@ export function Filter<TData>({
   }, [data, search, values, groups, sortOptions, searchFields]);
 
   // Push to parent whenever result changes
+  const prevFilteredRef = useRef<TData[]>([]);
   useEffect(() => {
+  if (prevFilteredRef.current !== filtered) {
+    prevFilteredRef.current = filtered;
     onResult(filtered);
-  }, [filtered, onResult]);
+  }
+}, [filtered, onResult]);
 
   // Close panel on outside click
   useEffect(() => {
