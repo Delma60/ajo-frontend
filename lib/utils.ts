@@ -7,9 +7,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 
-export function formatNaira(n: number = 0): string {
-  if (n >= 1_000_000) return `₦${(n / 1_000_000)?.toFixed(1)}M`;
-  if (n >= 1_000) return `₦${(n / 1_000)?.toFixed(0)}k`;
+export function formatNaira(n: number = 0, options?: { compact?: boolean }): string {
+  if (options?.compact) {
+    if (n >= 1_000_000) return `₦${(n / 1_000_000)?.toFixed(1)}M`;
+    if (n >= 1_000) return `₦${(n / 1_000)?.toFixed(0)}k`;
+  }
+  
   return `₦${n?.toLocaleString()}`;
 }
 
