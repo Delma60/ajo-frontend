@@ -23,6 +23,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverDescription,
+  PopoverBody,
+  PopoverFooter,
+  PopoverClose,
+} from "@/components/ui/popover";
+import {
   Users,
   Search,
   ChevronRight,
@@ -37,7 +48,7 @@ import {
   XCircle,
   AlertTriangle,
   RefreshCw,
-  Filter,
+  // Filter,
   Eye,
   Ban,
   Play,
@@ -48,6 +59,7 @@ import {
   ArrowUpDown,
   ShieldCheck,
   Activity,
+  X,
 } from "lucide-react";
 import { HTTPS } from "@/lib/http";
 import {
@@ -57,6 +69,8 @@ import {
   PayoutOrder,
 } from "@/lib/types/group.types";
 import { formatNaira, freqLabel, payoutLabel } from "@/lib/utils";
+import { Filter } from "@/components/ui/filter";
+import { toast } from "sonner";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -200,82 +214,77 @@ function ActionMenu({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors"
-      >
-        <MoreHorizontal size={16} />
-      </button>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
+          <MoreHorizontal size={16} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent width={280}>
+        <PopoverBody>
+          <Link
+            href={`/admin/groups/${group.id}`}
+            className="flex items-center gap-2 px-3 py-2 text-[12px] text-zinc-700 hover:bg-zinc-50 transition-colors"
+            onClick={() => setOpen(false)}
+          >
+            <Eye size={13} className="text-zinc-400" />
+            View details
+          </Link>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-20 w-44 bg-white border border-zinc-200 rounded-xl shadow-lg py-1 overflow-hidden">
-            <Link
-              href={`/admin/groups/${group.id}`}
-              className="flex items-center gap-2 px-3 py-2 text-[12px] text-zinc-700 hover:bg-zinc-50 transition-colors"
-              onClick={() => setOpen(false)}
+          {group.status === "active" && (
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-amber-700 hover:bg-amber-50 transition-colors"
+              onClick={() => {
+                onStatusChange(group.id, "paused");
+                setOpen(false);
+              }}
             >
-              <Eye size={13} className="text-zinc-400" />
-              View details
-            </Link>
+              <PauseCircle size={13} className="text-amber-500" />
+              Pause circle
+            </button>
+          )}
 
-            {group.status === "active" && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-amber-700 hover:bg-amber-50 transition-colors"
-                onClick={() => {
-                  onStatusChange(group.id, "paused");
-                  setOpen(false);
-                }}
-              >
-                <PauseCircle size={13} className="text-amber-500" />
-                Pause circle
-              </button>
-            )}
+          {group.status === "paused" && (
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-emerald-700 hover:bg-emerald-50 transition-colors"
+              onClick={() => {
+                onStatusChange(group.id, "active");
+                setOpen(false);
+              }}
+            >
+              <Play size={13} className="text-emerald-500" />
+              Resume circle
+            </button>
+          )}
 
-            {group.status === "paused" && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-emerald-700 hover:bg-emerald-50 transition-colors"
-                onClick={() => {
-                  onStatusChange(group.id, "active");
-                  setOpen(false);
-                }}
-              >
-                <Play size={13} className="text-emerald-500" />
-                Resume circle
-              </button>
-            )}
+          {group.status !== "closed" && (
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors"
+              onClick={() => {
+                onStatusChange(group.id, "closed");
+                setOpen(false);
+              }}
+            >
+              <Ban size={13} />
+              Close circle
+            </button>
+          )}
 
-            {group.status !== "closed" && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors"
-                onClick={() => {
-                  onStatusChange(group.id, "closed");
-                  setOpen(false);
-                }}
-              >
-                <Ban size={13} />
-                Close circle
-              </button>
-            )}
-
-            <div className="border-t border-zinc-100 mt-1 pt-1">
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-rose-600 hover:bg-rose-50 transition-colors"
-                onClick={() => {
-                  onDelete(group.id);
-                  setOpen(false);
-                }}
-              >
-                <Trash2 size={13} />
-                Delete circle
-              </button>
-            </div>
+          <div className="border-t border-zinc-100 mt-1 pt-1">
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-rose-600 hover:bg-rose-50 transition-colors"
+              onClick={() => {
+                onDelete(group.id);
+                setOpen(false);
+              }}
+            >
+              <Trash2 size={13} />
+              Delete circle
+            </button>
           </div>
-        </>
-      )}
-    </div>
+        </PopoverBody>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -333,6 +342,7 @@ function TableSkeleton() {
 
 export default function AdminGroupsPage() {
   const [groups, setGroups] = useState<IGroup[]>([]);
+  const [filtered, setFiltered] = useState<IGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<GroupStatus | "all">("all");
@@ -349,14 +359,19 @@ export default function AdminGroupsPage() {
       .catch(() => setGroups([]))
       .finally(() => setLoading(false));
   }, []);
+  // console.log("Fetched groups:", groups);
 
   const handleStatusChange = async (id: string, status: GroupStatus) => {
     try {
-      await HTTPS.patch(`/groups/${id}`, { status });
-      setGroups((prev) =>
-        prev.map((g) => (g.id === id ? { ...g, status } : g)),
+      const { data } = await HTTPS.patch<IGroup>(`/groups/${id}`, { status });
+      console.log(data) 
+      //pacth returns new updated group, so adding it to exiting group
+      setFiltered((prev) => prev.map((g) => (g.id === id ? data : g)));
+      toast.success(
+        `Circle ${status === "active" ? "resumed" : status} successfully.`,
       );
     } catch {
+      toast.error("Failed to update status.");
       alert("Failed to update status.");
     }
   };
@@ -384,62 +399,6 @@ export default function AdminGroupsPage() {
       setSortDir("asc");
     }
   };
-
-  const filtered = useMemo(() => {
-    let result = [...groups];
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (g) =>
-          g.name?.toLowerCase().includes(q) ||
-          g.description?.toLowerCase().includes(q) ||
-          String(g.id).includes(q),
-      );
-    }
-
-    if (statusFilter !== "all")
-      result = result.filter((g) => g.status === statusFilter);
-    if (freqFilter !== "all")
-      result = result.filter((g) => g.frequency === freqFilter);
-    if (payoutFilter !== "all")
-      result = result.filter((g) => g.payout_order === payoutFilter);
-
-    result.sort((a, b) => {
-      let av: number | string = 0;
-      let bv: number | string = 0;
-      if (sortField === "name") {
-        av = a.name || "";
-        bv = b.name || "";
-      } else if (sortField === "membersCount") {
-        av = a.membersCount || 0;
-        bv = b.membersCount || 0;
-      } else if (sortField === "saved") {
-        av = a.saved || 0;
-        bv = b.saved || 0;
-      } else if (sortField === "created_at") {
-        av = new Date(String(a.created_at)).getTime();
-        bv = new Date(String(b.created_at)).getTime();
-      } else if (sortField === "status") {
-        av = a.status || "";
-        bv = b.status || "";
-      }
-
-      if (av < bv) return sortDir === "asc" ? -1 : 1;
-      if (av > bv) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return result;
-  }, [
-    groups,
-    search,
-    statusFilter,
-    freqFilter,
-    payoutFilter,
-    sortField,
-    sortDir,
-  ]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -508,86 +467,60 @@ export default function AdminGroupsPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <Card variant="default">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Search by name, description, or ID…"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-full h-9 pl-8 pr-3 rounded-xl border border-zinc-200 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/20 transition-all"
-                />
-              </div>
-
-              {/* Status */}
-              <div className="flex items-center gap-1 bg-zinc-100 rounded-xl p-1">
-                {(["all", "active", "paused", "closed"] as const).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      setStatusFilter(s);
-                      setPage(1);
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-medium capitalize transition-all ${
-                      statusFilter === s
-                        ? "bg-white shadow-sm text-zinc-900"
-                        : "text-zinc-500 hover:text-zinc-700"
-                    }`}
-                  >
-                    {s === "all" ? "All status" : s}
-                  </button>
-                ))}
-              </div>
-
-              {/* Frequency */}
-              <select
-                value={freqFilter}
-                onChange={(e) => {
-                  setFreqFilter(e.target.value as any);
-                  setPage(1);
-                }}
-                className="h-9 px-3 rounded-xl border border-zinc-200 text-[12px] text-zinc-700 bg-white outline-none focus:border-emerald-600"
-              >
-                <option value="all">All frequencies</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="bi-weekly">Bi-weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-
-              {/* Payout order */}
-              <select
-                value={payoutFilter}
-                onChange={(e) => {
-                  setPayoutFilter(e.target.value as any);
-                  setPage(1);
-                }}
-                className="h-9 px-3 rounded-xl border border-zinc-200 text-[12px] text-zinc-700 bg-white outline-none focus:border-emerald-600"
-              >
-                <option value="all">All payout types</option>
-                <option value="rotational">Rotational</option>
-                <option value="random">Random draw</option>
-                <option value="bidding">Bidding</option>
-              </select>
-
-              {/* Result count */}
-              <span className="text-[12px] text-zinc-400 bg-zinc-100 rounded-full px-3 py-1.5 font-medium ml-auto">
-                {filtered.length} result{filtered.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <Filter
+          data={groups}
+          onResult={setFiltered}
+          searchFields={["name", "description"]}
+          searchPlaceholder="Search by name or description…"
+          quickGroup="freq"
+          groups={[
+            {
+              key: "freq",
+              label: "Frequency",
+              options: [
+                { value: "all", label: "All" },
+                { value: "daily", label: "Daily" },
+                { value: "weekly", label: "Weekly" },
+                { value: "bi-weekly", label: "Bi-weekly" },
+                { value: "monthly", label: "Monthly" },
+              ],
+              match: (item, v) => (item as any).frequency === v,
+            },
+            {
+              key: "status",
+              label: "Status",
+              multi: true,
+              options: [
+                { value: "active", label: "Active" },
+                { value: "paused", label: "Paused" },
+                { value: "closed", label: "Closed" },
+              ],
+              match: (item, v) => item.status == v,
+            },
+            {
+              key: "payout",
+              label: "Payout order",
+              options: [
+                { value: "all", label: "All" },
+                { value: "random", label: "Random" },
+                { value: "bidding", label: "Bidding" },
+                { value: "rotational", label: "Rotational" },
+              ],
+              match: (item, v) => (item as IGroup).payout_order === v,
+            },
+            {
+              key: "visiblity",
+              label: "Visibility",
+              options: [
+                { value: "all", label: "All" },
+                { value: "private", label: "Private" },
+                { value: "public", label: "Public" },
+              ],
+              match: (item, v) =>
+                item.isPrivate ? v === "private" : v === "public",
+            },
+          ]}
+        />
 
         {/* Table */}
         <Card variant="default" className="overflow-hidden">
