@@ -19,7 +19,6 @@ export interface IUser {
   referral_count: number;
   referral_code: string;
   status: "active" | 'pending' | "suspended" | "banned";
-  settings: Record<string, unknown>;
   transactions:ITransaction[];
   inviteSent:IInvite[];
   inviteReceived:IInvite[];
@@ -40,6 +39,7 @@ export interface IUser {
   created_at_human: string;
   notifications:INotification[]
   updated_at: Date | string;
+  settings:ISettings;
   referral?:{
     code:string;
     invited_count:number;
@@ -56,3 +56,23 @@ export interface IBalance {
     total_saved: number;
 }
 
+
+
+export interface ISettings {
+  notifications: {
+    email_payouts: boolean;
+    email_investments: boolean;
+    email_invites: boolean;
+    email_marketing: boolean;
+    push_activity: boolean;
+    push_reminders: boolean;
+    sms_security: boolean;
+  };
+  kyc: {
+    bvn: string;
+    id_type: string;
+    id_number: string;
+    id_document_front: string;
+    id_document_back: string;
+  }
+}

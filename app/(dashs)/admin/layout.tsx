@@ -67,8 +67,10 @@ const MAIN_NAV: NavItem[] = [
     icon: <UsersIcon size={18} />,
     children: [
       { label: "All customers", href: "/admin/customers" },
+
       { label: "Groups", href: "/admin/groups" },
       { label: "Transactions", href: "/admin/transactions" },
+      { label: "roles", href: "/admin/roles" },
     ],
   },
   {
@@ -91,6 +93,11 @@ const MAIN_NAV: NavItem[] = [
     ],
   },
   {
+    label: "Payment gateway",
+    href: "/admin/payment-gateway",
+    icon: <CompassIcon size={18} />,
+  },
+  {
     label: "Notifications",
     href: "/admin/notifications",
     icon: <BellIcon size={18} />,
@@ -102,7 +109,17 @@ const MAIN_NAV: NavItem[] = [
   },
 ];
 
-const SETTINGS_NAV: NavItem[] = [];
+const SETTINGS_NAV: NavItem[] = [
+  {
+    label: "Settings",
+    href: "/admin/settings",
+    icon: <SettingsIcon size={18} />,
+    children: [
+      { label: "Profile", href: "/admin/settings/profile" },
+      { label: "payments", href: "/admin/settings/payments" },
+    ],
+  },
+];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 

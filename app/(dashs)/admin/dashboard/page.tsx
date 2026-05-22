@@ -349,7 +349,7 @@ export default function AdminDashboardPage() {
       HTTPS.get<AdminMetrics>(`/admin/metrics?timeframe=${timeframe}`).then(
         ({ data }) => data,
       ),
-      HTTPS.get<ITransaction[]>("/admin/transactions/recent").then(
+      HTTPS.get<ITransaction[]>("/admin/transactions/recent?num=4").then(
         ({ data }) => data,
       ),
       // GroupResource::collection wraps in {data:[...]};  handle both shapes.
@@ -765,7 +765,7 @@ export default function AdminDashboardPage() {
           </Card>
 
           {/* Circle health */}
-          <Card variant="default">
+          <Card variant="default" className="h-100">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Circle health</CardTitle>
@@ -775,7 +775,7 @@ export default function AdminDashboardPage() {
               </div>
             </CardHeader>
             <CardDivider />
-            <CardContent className="pt-3">
+            <CardContent className="pt-3 h-[100%]">
               <HealthBar
                 label="On-time rate"
                 value={metrics?.on_time_rate ?? 0}
@@ -813,7 +813,7 @@ export default function AdminDashboardPage() {
           </Card>
 
           {/* User acquisition */}
-          <Card variant="default">
+          <Card className="h-100">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>User acquisition</CardTitle>

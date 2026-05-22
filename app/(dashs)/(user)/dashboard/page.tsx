@@ -106,7 +106,7 @@ function StatCard({
 
 function QuickActions() {
   const actions = [
-    { icon: CircleDollarSign, label: "Deposit", color: "emerald" as const, href:"/" },
+    { icon: CircleDollarSign, label: "Deposit", color: "emerald" as const, href:"/deposit" },
     { icon: ArrowUpRight, label: "Withdraw", color: "amber" as const, href:"/withdraw" },
     { icon: Users, label: "New Circle", color: "blue" as const, href:"/groups/create" },
     { icon: Layers, label: "History", color: "rose" as const, href:"/transactions/history" },

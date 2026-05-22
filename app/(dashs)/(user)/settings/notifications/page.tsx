@@ -20,6 +20,8 @@ import {
   MessageSquare,
   ShieldCheck,
 } from "lucide-react";
+import { Auth } from "@/lib/auth";
+import { IUser } from "@/lib/types/user.types";
 
 // --- Inline Toggle Component ---
 function Toggle({
@@ -50,19 +52,14 @@ function Toggle({
 }
 
 export default function NotificationsPage() {
+  const user = Auth.user() as unknown as IUser;
+  console.log(user?.settings)
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   // Preference State
-  const [prefs, setPrefs] = useState({
-    email_payouts: true,
-    email_invites: true,
-    email_marketing: false,
-    push_activity: true,
-    push_reminders: true,
-    sms_security: true,
-  });
+  const [prefs, setPrefs] = useState(user?.settings.notifications);
 
   // Simulate fetching existing preferences
   useEffect(() => {
@@ -93,10 +90,7 @@ export default function NotificationsPage() {
 
     try {
       // Adjust endpoint to match your Laravel backend structure
-      const res = await HTTPS.put<any>("/profile/update", {
-        // Sending as a meta object or whatever your backend expects
-        meta: { notifications: prefs },
-      });
+      const res = await HTTPS.put<any>("/settings/notifications", prefs);
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         setSuccessMsg("Notification preferences updated.");
