@@ -103,6 +103,11 @@ const MAIN_NAV: NavItem[] = [
     icon: <BellIcon size={18} />,
   },
   {
+    label: "promotion",
+    href: "/admin/promotion",
+    icon: <Ticket size={18} />,
+  },
+  {
     label: "Support",
     href: "/admin/support",
     icon: <LifeBuoyIcon size={18} />,
