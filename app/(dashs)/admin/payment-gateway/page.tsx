@@ -53,6 +53,7 @@ import {
   AlertCircle,
   Download,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { HTTPS } from "@/lib/http";
 import { formatNaira } from "@/lib/utils";
@@ -647,7 +648,7 @@ function WebhookRow({ log }: { log: WebhookLog }) {
 
 // ─── Stats Cards ──────────────────────────────────────────────────────────────
 
-function GatewayStats({ providers }: { providers: Provider[] }) {
+function GatewayStats({ providers }: { providers: Provider[] | null }) {
   const activeProviders = providers?.filter((p) => p.status === "active");
   const totalVolume = providers?.reduce((s, p) => s + p.totalVolume, 0);
   const totalTxns = providers?.reduce((s, p) => s + p.totalTransactions, 0);
@@ -732,8 +733,8 @@ function GatewayStats({ providers }: { providers: Provider[] }) {
 type TabKey = "providers" | "webhooks" | "routing";
 
 export default function PaymentGatewayPage() {
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
+  const [providers, setProviders] = useState<Provider[] | null>(null);
+  const [webhookLogs, setWebhookLogs] = useState<WebhookLog[] | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<WebhookLog[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("providers");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -743,7 +744,7 @@ export default function PaymentGatewayPage() {
       HTTPS.patch(`/admin/payment-gateway/providers/${id}/toggle`).then(
         ({ data: provider }) => {
           setProviders((prev) =>
-            prev.map((p) => (p.id === id ? (provider as Provider) : p)),
+            prev?.map((p) => (p.id === id ? (provider as Provider) : p)),
           );
           const p = providers?.find((x) => x.id === id);
           if (p) {
@@ -778,9 +779,9 @@ export default function PaymentGatewayPage() {
       HTTPS.get("/admin/webhook-logs").then(({ data }) => data),
     ]);
     console.log({
-        _providers,
-        _webhookLogs
-    })
+      _providers,
+      _webhookLogs,
+    });
     setProviders(_providers as Provider[]);
     setWebhookLogs(_webhookLogs as WebhookLog[]);
 
@@ -791,13 +792,15 @@ export default function PaymentGatewayPage() {
   useLayoutEffect(() => {
     const fetchData = async () => {
       const [_providers, _webhookLogs] = await Promise.all([
-        HTTPS.get("/admin/payment-gateway/providers").then(({ data }) => data ?? []),
+        HTTPS.get("/admin/payment-gateway/providers").then(
+          ({ data }) => data ?? [],
+        ),
         HTTPS.get("/admin/webhook-logs").then(({ data }) => data ?? []),
       ]);
       console.log({
         _providers,
-        _webhookLogs
-    })
+        _webhookLogs,
+      });
       setProviders(_providers as Provider[]);
       setWebhookLogs(_webhookLogs as WebhookLog[]);
     };
@@ -810,9 +813,8 @@ export default function PaymentGatewayPage() {
     { key: "routing", label: "Routing Rules" },
   ];
 
-  const degradedCount = providers?.filter(
-    (p) => p.status === "degraded",
-  ).length;
+  const degradedCount =
+    providers?.filter((p) => p.status === "degraded")?.length || 0;
 
   return (
     <div className="min-h-full bg-zinc-50/40">
@@ -897,14 +899,25 @@ export default function PaymentGatewayPage() {
           {/* ── Providers tab ─────────────────────────────────────────────── */}
           {activeTab === "providers" && (
             <CardContent className="space-y-4 pt-5">
-              {providers?.map((p) => (
-                <ProviderCard
-                  key={p.id}
-                  provider={p}
-                  onToggle={handleToggle}
-                  onSetDefault={handleSetDefault}
-                />
-              ))}
+              {providers === null ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 size={20} className="animate-spin text-zinc-400" />
+                </div>
+              ) : providers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <CreditCard size={24} className="text-zinc-400" />
+                  <p className="text-sm text-zinc-500">No providers found.</p>
+                </div>
+              ) : (
+                providers.map((p) => (
+                  <ProviderCard
+                    key={p.id}
+                    provider={p}
+                    onToggle={handleToggle}
+                    onSetDefault={handleSetDefault}
+                  />
+                ))
+              )}
             </CardContent>
           )}
 
@@ -913,7 +926,7 @@ export default function PaymentGatewayPage() {
             <CardContent className="pt-4 pb-0 px-0">
               <div className="px-5 pb-4">
                 <Filter
-                  data={webhookLogs}
+                  data={webhookLogs || []}
                   onResult={setFilteredLogs}
                   searchFields={["event", "provider"]}
                   searchPlaceholder="Search by event or provider…"
@@ -978,19 +991,19 @@ export default function PaymentGatewayPage() {
                 {[
                   {
                     label: "Delivered",
-                    count: webhookLogs.filter((l) => l.status === "delivered")
+                    count: webhookLogs?.filter((l) => l.status === "delivered")
                       .length,
                     color: "text-emerald-700",
                   },
                   {
                     label: "Failed",
-                    count: webhookLogs.filter((l) => l.status === "failed")
+                    count: webhookLogs?.filter((l) => l.status === "failed")
                       .length,
                     color: "text-red-600",
                   },
                   {
                     label: "Pending",
-                    count: webhookLogs.filter((l) => l.status === "pending")
+                    count: webhookLogs?.filter((l) => l.status === "pending")
                       .length,
                     color: "text-amber-600",
                   },
