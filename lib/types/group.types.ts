@@ -45,6 +45,7 @@ export interface IGroup {
   pendingInvites :IInvite[]
   pendingRequests :IInvite[];
   meta:Record<string, unknown>
+  progress_percent:number
 }
 
 

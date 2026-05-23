@@ -53,6 +53,8 @@ interface UseFormReturn<T extends FormValues> {
   setErrors: (errors: FormErrors<T>) => void;
   /** Trigger validation and call onSubmit if valid */
   handleSubmit: (e?: React.FormEvent) => Promise<void>;
+  onChange: (field: keyof T, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>|string|number|boolean) => void;
+  
   /** Reset to initial values */
   reset: () => void;
 }
@@ -194,6 +196,39 @@ export function useForm<T extends FormValues>({
     }
   }, [values, rules, onSubmit, initialValues]);
 
+  // Replace the empty 'const onChange' with this:
+  const onChange = useCallback(
+    (field: keyof T, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | string | number | boolean>) => {
+      if(typeof e === "string") {
+        setValue(field, e);
+        return;
+      }
+      else if(typeof e === "number") {
+        setValue(field, e);
+        return;
+      }
+      else if(typeof e === "boolean") {
+        setValue(field, e);
+        return;
+      }else{
+        const { name, value, type } = e.target;
+        
+        // Handle checkboxes specifically, otherwise use the standard string value
+        let parsedValue: FieldValue = value;
+        if (type === "checkbox") {
+          parsedValue = (e.target as HTMLInputElement).checked;
+        } else if (type === "number" && value !== "") {
+           // Optionally handle number inputs if you want them stored as numbers
+          parsedValue = Number(value);
+        }
+  
+        setValue(name as keyof T || field, parsedValue);
+      }
+
+    },
+    [setValue]
+  );
+
   const reset = useCallback(() => {
     setValues(initialValues);
     setErrorsState({});
@@ -208,6 +243,7 @@ export function useForm<T extends FormValues>({
     isSubmitting,
     isDirty,
     isValid,
+    onChange,
     register,
     setValue,
     setError,

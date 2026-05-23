@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useLayoutEffect,
+  useRef,
 } from "react";
 import {
   Card,
@@ -13,7 +14,6 @@ import {
   CardTitle,
   CardDescription,
   CardDivider,
-  CardBadge,
 } from "@/components/ui/card";
 import {
   Table,
@@ -35,7 +35,6 @@ import {
   Clock,
   RefreshCw,
   TrendingUp,
-  TrendingDown,
   Activity,
   Globe,
   Shield,
@@ -45,19 +44,29 @@ import {
   Eye,
   EyeOff,
   ChevronRight,
-  Webhook,
+  ChevronDown,
   ArrowDownLeft,
   ArrowUpRight,
   Settings,
-  BarChart3,
   AlertCircle,
   Download,
   ExternalLink,
   Loader2,
+  Webhook,
+  BarChart3,
+  ArrowRight,
+  Info,
+  CheckCheck,
+  Ban,
+  RotateCcw,
+  WifiOff,
+  Signal,
+  Gauge,
 } from "lucide-react";
 import { HTTPS } from "@/lib/http";
 import { formatNaira } from "@/lib/utils";
 import { toast } from "sonner";
+import AddProviderDialog from "@/components/add-provider-dialog";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -69,17 +78,17 @@ interface Provider {
   status: "active" | "inactive" | "degraded";
   isDefault: boolean;
   mode: "live" | "test";
-  publicKey: string;
-  secretKey: string;
-  webhookUrl: string;
-  webhookSecret: string;
-  successRate: number;
-  totalVolume: number;
-  totalTransactions: number;
+  public_key: string;
+  secret_key: string;
+  webhook_url: string;
+  webhook_secret: string;
+  success_rate: number;
+  total_volume: number;
+  total_transactions: number;
   avgResponseMs: number;
   failureRate: number;
   lastChecked: string;
-  supportedMethods: string[];
+  supported_methods: string[];
   fees: { card: string; bank: string; ussd: string };
 }
 
@@ -95,138 +104,7 @@ interface WebhookLog {
   retries: number;
 }
 
-interface ProviderStats {
-  provider: string;
-  successRate: number;
-  volume: number;
-  txCount: number;
-  avgTime: number;
-  failureRate: number;
-}
-
-// ─── Mock data helpers ────────────────────────────────────────────────────────
-
-// const MOCK_PROVIDERS: Provider[] = [
-//   {
-//     id: "p1",
-//     name: "Flutterwave",
-//     slug: "flutterwave",
-//     logo: "FW",
-//     status: "active",
-//     isDefault: true,
-//     mode: "live",
-//     publicKey: "FLWPUBK-xxxxxxxxxxxxxxxxxxxx-X",
-//     secretKey: "FLWSECK-xxxxxxxxxxxxxxxxxxxx-X",
-//     webhookUrl: "https://api.ajosave.com/webhooks/flutterwave",
-//     webhookSecret: "whsec_xxxxxxxxxxxxxxxxxxxx",
-//     successRate: 97.4,
-//     totalVolume: 84200000,
-//     totalTransactions: 3842,
-//     avgResponseMs: 1240,
-//     failureRate: 2.6,
-//     lastChecked: new Date(Date.now() - 120000).toISOString(),
-//     supportedMethods: ["Card", "Bank Transfer", "USSD", "Mobile Money"],
-//     fees: { card: "1.4% + ₦100", bank: "₦10", ussd: "₦10" },
-//   },
-//   {
-//     id: "p2",
-//     name: "Paystack",
-//     slug: "paystack",
-//     logo: "PS",
-//     status: "active",
-//     isDefault: false,
-//     mode: "live",
-//     publicKey: "pk_live_xxxxxxxxxxxxxxxxxxxx",
-//     secretKey: "sk_live_xxxxxxxxxxxxxxxxxxxx",
-//     webhookUrl: "https://api.ajosave.com/webhooks/paystack",
-//     webhookSecret: "whsec_xxxxxxxxxxxxxxxxxxxx",
-//     successRate: 98.1,
-//     totalVolume: 12300000,
-//     totalTransactions: 641,
-//     avgResponseMs: 980,
-//     failureRate: 1.9,
-//     lastChecked: new Date(Date.now() - 300000).toISOString(),
-//     supportedMethods: ["Card", "Bank Transfer", "USSD"],
-//     fees: { card: "1.5% + ₦100", bank: "₦10", ussd: "₦10" },
-//   },
-//   {
-//     id: "p3",
-//     name: "Monnify",
-//     slug: "monnify",
-//     logo: "MN",
-//     status: "inactive",
-//     isDefault: false,
-//     mode: "test",
-//     publicKey: "MK_TEST_xxxxxxxxxxxxxxxxxxxx",
-//     secretKey: "xxxxxxxxxxxxxxxxxxxx",
-//     webhookUrl: "https://api.ajosave.com/webhooks/monnify",
-//     webhookSecret: "whsec_xxxxxxxxxxxxxxxxxxxx",
-//     successRate: 0,
-//     totalVolume: 0,
-//     totalTransactions: 0,
-//     avgResponseMs: 0,
-//     failureRate: 0,
-//     lastChecked: new Date(Date.now() - 86400000).toISOString(),
-//     supportedMethods: ["Bank Transfer", "USSD"],
-//     fees: { card: "N/A", bank: "₦20", ussd: "₦20" },
-//   },
-// ];
-
-// const MOCK_WEBHOOK_LOGS: WebhookLog[] = Array.from({ length: 20 }, (_, i) => ({
-//   id: `wh_${i + 1}`,
-//   provider: i % 3 === 2 ? "paystack" : "flutterwave",
-//   event: ["charge.completed", "transfer.completed", "charge.failed", "transfer.failed"][i % 4],
-//   status: (["delivered", "delivered", "delivered", "failed", "pending"] as const)[i % 5],
-//   statusCode: [200, 200, 200, 500, 0][i % 5],
-//   responseTime: Math.floor(Math.random() * 800 + 100),
-//   payload: `{"event":"charge.completed","data":{"id":${10000 + i}}}`,
-//   createdAt: new Date(Date.now() - i * 3600000).toISOString(),
-//   retries: [0, 0, 0, 2, 1][i % 5],
-// }));
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function StatusDot({ status }: { status: Provider["status"] }) {
-  const map = {
-    active: "bg-emerald-500",
-    inactive: "bg-zinc-400",
-    degraded: "bg-amber-500",
-  };
-  return (
-    <span
-      className={`inline-block w-2 h-2 rounded-full ${map[status]} ${status === "active" ? "animate-pulse" : ""}`}
-    />
-  );
-}
-
-function SecretField({ value }: { value: string }) {
-  const [revealed, setRevealed] = useState(false);
-  const { copied, copy } = useCopy(value);
-  const display = revealed
-    ? value
-    : value.slice(0, 8) + "•".repeat(20) + value.slice(-4);
-  return (
-    <div className="flex items-center gap-2 font-mono text-[12px] bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-      <span className="flex-1 truncate text-zinc-700">{display}</span>
-      <button
-        onClick={() => setRevealed((p) => !p)}
-        className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0"
-      >
-        {revealed ? <EyeOff size={13} /> : <Eye size={13} />}
-      </button>
-      <button
-        onClick={copy}
-        className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0"
-      >
-        {copied ? (
-          <CheckCircle2 size={13} className="text-emerald-600" />
-        ) : (
-          <Copy size={13} />
-        )}
-      </button>
-    </div>
-  );
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function useCopy(text: string) {
   const [copied, setCopied] = useState(false);
@@ -238,52 +116,253 @@ function useCopy(text: string) {
   return { copied, copy };
 }
 
-function HealthBar({
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+// ─── SecretField ──────────────────────────────────────────────────────────────
+
+function SecretField({ value, label }: { value: string; label: string }) {
+  const [revealed, setRevealed] = useState(false);
+  const { copied, copy } = useCopy(value);
+  const masked = value.slice(0, 8) + "•".repeat(16) + value.slice(-4);
+
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 mb-1.5">
+        {label}
+      </p>
+      <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5">
+        <span className="flex-1 font-mono text-[12px] text-zinc-700 dark:text-zinc-300 truncate">
+          {revealed ? value : masked}
+        </span>
+        <button
+          onClick={() => setRevealed((p) => !p)}
+          className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors shrink-0"
+        >
+          {revealed ? <EyeOff size={13} /> : <Eye size={13} />}
+        </button>
+        <button
+          onClick={copy}
+          className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors shrink-0"
+        >
+          {copied ? (
+            <CheckCheck size={13} className="text-emerald-600" />
+          ) : (
+            <Copy size={13} />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Provider health ring ─────────────────────────────────────────────────────
+
+function HealthRing({
   value,
+  size = 48,
   color = "emerald",
 }: {
   value: number;
-  color?: string;
+  size?: number;
+  color?: "emerald" | "amber" | "rose";
 }) {
-  const barColor =
-    color === "rose"
-      ? "bg-rose-500"
-      : color === "amber"
-        ? "bg-amber-500"
-        : "bg-emerald-500";
+  const r = (size - 6) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (value / 100) * circ;
+
+  const strokeColor = {
+    emerald: "#10b981",
+    amber: "#f59e0b",
+    rose: "#f43f5e",
+  }[color];
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="w-24 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full ${barColor}`}
-          style={{ width: `${Math.min(value, 100)}%` }}
-        />
-      </div>
-      <span className="text-[12px] font-semibold text-zinc-700 tabular-nums">
-        {value.toFixed(1)}%
-      </span>
-    </div>
+    <svg width={size} height={size} className="-rotate-90">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={3}
+        className="text-zinc-100 dark:text-zinc-800"
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={3}
+        strokeDasharray={`${dash} ${circ - dash}`}
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
-function ProviderLogo({ slug, initials }: { slug: string; initials: string }) {
-  const colors: Record<string, string> = {
-    flutterwave: "from-orange-500 to-red-500",
-    paystack: "from-blue-500 to-indigo-600",
-    monnify: "from-emerald-500 to-teal-600",
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+function GatewayStatCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  color = "emerald",
+  trend,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub?: string;
+  color?: "emerald" | "amber" | "blue" | "rose";
+  trend?: { dir: "up" | "down"; value: string };
+}) {
+  const colorMap = {
+    emerald: "bg-emerald-50 text-emerald-700",
+    amber: "bg-amber-50 text-amber-700",
+    blue: "bg-blue-50 text-blue-700",
+    rose: "bg-rose-50 text-rose-700",
   };
   return (
+    <Card variant="default" className="hover:shadow-sm transition-shadow">
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-start justify-between mb-3">
+          <span
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-xl ${colorMap[color]}`}
+          >
+            <Icon size={18} />
+          </span>
+          {trend && (
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
+                trend.dir === "up" ? "text-emerald-700" : "text-rose-600"
+              }`}
+            >
+              {trend.dir === "up" ? (
+                <TrendingUp size={11} />
+              ) : (
+                <ArrowUpRight size={11} className="rotate-90" />
+              )}
+              {trend.value}
+            </span>
+          )}
+        </div>
+        <p
+          className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight"
+          style={{ fontFamily: "Georgia, serif" }}
+        >
+          {value}
+        </p>
+        <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide mt-0.5">
+          {label}
+        </p>
+        {sub && <p className="text-[11px] text-zinc-500 mt-1">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Provider Logo ────────────────────────────────────────────────────────────
+
+function ProviderLogo({ slug }: { slug: string }) {
+  const config: Record<string, { initials: string; from: string; to: string }> =
+    {
+      flutterwave: {
+        initials: "FW",
+        from: "#f97316",
+        to: "#ef4444",
+      },
+      paystack: { initials: "PS", from: "#3b82f6", to: "#6366f1" },
+      monnify: { initials: "MN", from: "#10b981", to: "#0d9488" },
+    };
+  const c = config[slug] ?? { initials: "??", from: "#71717a", to: "#52525b" };
+
+  return (
     <div
-      className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[slug] ?? "from-zinc-400 to-zinc-600"} flex items-center justify-center shrink-0`}
+      className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+      style={{
+        background: `linear-gradient(135deg, ${c.from}, ${c.to})`,
+      }}
     >
-      <span className="text-[11px] font-bold text-white tracking-wider">
-        {initials}
+      <span className="text-[12px] font-bold text-white tracking-wider">
+        {c.initials}
       </span>
     </div>
   );
 }
 
-// ─── Provider Card ─────────────────────────────────────────────────────────────
+// ─── Status Dot ───────────────────────────────────────────────────────────────
+
+function StatusDot({ status }: { status: Provider["status"] }) {
+  return (
+    <span className="relative flex h-2.5 w-2.5">
+      {status === "active" && (
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+      )}
+      <span
+        className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+          status === "active"
+            ? "bg-emerald-500"
+            : status === "degraded"
+              ? "bg-amber-500"
+              : "bg-zinc-400"
+        }`}
+      />
+    </span>
+  );
+}
+
+// ─── Connection Test Button ───────────────────────────────────────────────────
+
+function TestConnectionButton({ providerName }: { providerName: string }) {
+  const [state, setState] = useState<"idle" | "testing" | "ok" | "fail">(
+    "idle",
+  );
+
+  const run = async () => {
+    setState("testing");
+    await new Promise((r) => setTimeout(r, 1800));
+    setState(Math.random() > 0.2 ? "ok" : "fail");
+    setTimeout(() => setState("idle"), 3000);
+  };
+
+  return (
+    <button
+      onClick={run}
+      disabled={state === "testing"}
+      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 disabled:opacity-50 transition-colors px-3 py-1.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+    >
+      {state === "testing" ? (
+        <>
+          <RefreshCw size={12} className="animate-spin" /> Testing…
+        </>
+      ) : state === "ok" ? (
+        <>
+          <CheckCircle2 size={12} className="text-emerald-600" /> Connected
+        </>
+      ) : state === "fail" ? (
+        <>
+          <XCircle size={12} className="text-rose-600" /> Failed
+        </>
+      ) : (
+        <>
+          <Zap size={12} /> Test connection
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─── Provider Card (expanded) ─────────────────────────────────────────────────
 
 function ProviderCard({
   provider,
@@ -295,247 +374,302 @@ function ProviderCard({
   onSetDefault: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const isActive = provider.status === "active";
+  const isActive = provider?.status === "active";
+  const successColor =
+    provider?.success_rate >= 95
+      ? "emerald"
+      : provider?.success_rate >= 88
+        ? "amber"
+        : "rose";
 
   return (
     <Card
       variant="default"
-      className={`overflow-hidden transition-all duration-200 ${expanded ? "shadow-md" : ""}`}
+      className={`overflow-hidden transition-all duration-200 ${
+        provider?.isDefault ? "ring-2 ring-emerald-600/30" : ""
+      }`}
     >
-      {/* Header row */}
+      {/* Header */}
       <CardContent className="pt-5 pb-4">
         <div className="flex items-start gap-4">
-          <ProviderLogo slug={provider.slug} initials={provider.logo} />
+          <ProviderLogo slug={provider?.slug} />
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h3 className="text-[15px] font-semibold text-zinc-900">
-                {provider.name}
+            <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+              <StatusDot status={provider?.status} />
+              <h3 className="text-[15px] font-semibold text-zinc-900 dark:text-white">
+                {provider?.name}
               </h3>
-              <StatusDot status={provider.status} />
-              <span
-                className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                  provider.status === "active"
-                    ? "bg-emerald-50 text-emerald-700"
-                    : provider.status === "degraded"
-                      ? "bg-amber-50 text-amber-700"
-                      : "bg-zinc-100 text-zinc-500"
-                }`}
-              >
-                {provider.status}
-              </span>
-              {provider.isDefault && (
-                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+              {provider?.isDefault && (
+                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                   Default
                 </span>
               )}
               <span
-                className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                  provider.mode === "live"
+                className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                  provider?.mode === "live"
                     ? "bg-emerald-900 text-emerald-300"
                     : "bg-zinc-800 text-zinc-300"
                 }`}
               >
-                {provider.mode}
+                {provider?.mode}
+              </span>
+              <span
+                className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                  provider?.status === "active"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : provider?.status === "degraded"
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-zinc-100 text-zinc-500"
+                }`}
+              >
+                {provider?.status}
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-zinc-500">
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-zinc-500">
               <span className="flex items-center gap-1">
-                <Activity size={10} />{" "}
-                {provider.totalTransactions.toLocaleString()} txns
+                <Activity size={10} />
+                {provider?.total_transactions.toLocaleString()} txns
               </span>
               <span className="flex items-center gap-1">
-                <TrendingUp size={10} />{" "}
-                {formatNaira(provider.totalVolume, { compact: true })} volume
+                <BarChart3 size={10} />
+                {formatNaira(provider?.total_volume, { compact: true })} vol
               </span>
-              {provider.avgResponseMs > 0 && (
+              {provider?.avgResponseMs > 0 && (
                 <span className="flex items-center gap-1">
-                  <Zap size={10} /> {provider.avgResponseMs}ms avg
+                  <Gauge size={10} />
+                  {provider?.avgResponseMs}ms avg
                 </span>
               )}
               <span className="text-zinc-400">
-                Checked{" "}
-                {new Date(provider.lastChecked).toLocaleTimeString("en-NG", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                Checked {timeAgo(provider?.lastChecked)}
               </span>
             </div>
           </div>
 
           {/* Controls */}
           <div className="flex items-center gap-2 shrink-0">
-            {!provider.isDefault && isActive && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-lg text-[11px] gap-1 text-zinc-500"
-                onClick={() => onSetDefault(provider.id)}
+            {!provider?.isDefault && isActive && (
+              <button
+                onClick={() => onSetDefault(provider?.id)}
+                className="text-[11px] font-medium text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors px-2.5 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
                 Set default
-              </Button>
+              </button>
             )}
             <button
-              onClick={() => onToggle(provider.id)}
-              className="text-zinc-400 hover:text-zinc-700 transition-colors"
-              title={isActive ? "Disable provider" : "Enable provider"}
+              onClick={() => onToggle(provider?.id)}
+              title={isActive ? "Disable" : "Enable"}
+              className="transition-colors"
             >
               {isActive ? (
-                <ToggleRight size={28} className="text-emerald-600" />
+                <ToggleRight size={30} className="text-emerald-600" />
               ) : (
-                <ToggleLeft size={28} className="text-zinc-400" />
+                <ToggleLeft
+                  size={30}
+                  className="text-zinc-300 dark:text-zinc-600"
+                />
               )}
             </button>
             <button
               onClick={() => setExpanded((p) => !p)}
-              className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors"
+              className="p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 transition-colors"
             >
-              <ChevronRight
-                size={14}
-                className={`transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
+              <ChevronDown
+                size={15}
+                className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
               />
             </button>
           </div>
         </div>
 
-        {/* Stats row */}
+        {/* Metrics row */}
         {isActive && (
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <div>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-wide font-medium mb-1">
-                Success rate
-              </p>
-              <HealthBar value={provider.successRate} />
+          <div className="mt-5 grid grid-cols-3 gap-4">
+            {/* Success rate with ring */}
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <HealthRing
+                  value={provider?.success_rate}
+                  size={44}
+                  color={successColor as "emerald" | "amber" | "rose"}
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-300">
+                  {provider?.success_rate}%
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wide font-medium">
+                  Success
+                </p>
+                <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200">
+                  {provider?.success_rate}%
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-wide font-medium mb-1">
-                Failure rate
-              </p>
-              <HealthBar
-                value={provider.failureRate}
-                color={provider.failureRate > 5 ? "rose" : "amber"}
-              />
+
+            {/* Failure rate */}
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <HealthRing
+                  value={provider?.failureRate}
+                  size={44}
+                  color={provider?.failureRate > 5 ? "rose" : "amber"}
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-300">
+                  {provider?.failureRate}%
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wide font-medium">
+                  Failures
+                </p>
+                <p
+                  className={`text-[13px] font-semibold ${
+                    provider?.failureRate > 5
+                      ? "text-rose-700"
+                      : "text-zinc-800 dark:text-zinc-200"
+                  }`}
+                >
+                  {provider?.failureRate}%
+                </p>
+              </div>
             </div>
+
+            {/* Methods */}
             <div>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-wide font-medium mb-1">
+              <p className="text-[10px] text-zinc-400 uppercase tracking-wide font-medium mb-1.5">
                 Methods
               </p>
-              <div className="flex gap-1 flex-wrap">
-                {provider.supportedMethods.slice(0, 3).map((m) => (
+              <div className="flex gap-1.5 flex-wrap">
+                {provider?.supported_methods.slice(0, 3).map((m) => (
                   <span
                     key={m}
-                    className="text-[10px] bg-zinc-100 text-zinc-600 rounded-full px-2 py-0.5"
+                    className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-full px-2 py-0.5 font-medium"
                   >
                     {m}
                   </span>
                 ))}
-                {provider.supportedMethods.length > 3 && (
+                {provider?.supported_methods.length > 3 && (
                   <span className="text-[10px] text-zinc-400">
-                    +{provider.supportedMethods.length - 3}
+                    +{provider?.supported_methods.length - 3}
                   </span>
                 )}
               </div>
             </div>
           </div>
         )}
+
+        {!isActive && (
+          <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <WifiOff size={13} className="text-zinc-400" />
+            <p className="text-[12px] text-zinc-500">
+              Provider is disabled — enable to process payments
+            </p>
+          </div>
+        )}
       </CardContent>
 
-      {/* Expanded: keys + config */}
+      {/* Expanded section */}
+
       {expanded && (
         <>
           <CardDivider />
-          <CardContent className="pt-4 pb-5 space-y-4">
+          <CardContent className="pt-5 pb-5 space-y-5">
+            {/* Keys grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide">
-                  Public Key
-                </p>
-                <SecretField value={provider.publicKey} />
-              </div>
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide">
-                  Secret Key
-                </p>
-                <SecretField value={provider.secretKey} />
-              </div>
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide">
+              <SecretField value={provider?.public_key} label="Public Key" />
+              <SecretField value={provider?.secret_key} label="Secret Key" />
+              <SecretField
+                value={provider?.webhook_secret}
+                label="Webhook Secret"
+              />
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 mb-1.5">
                   Webhook URL
                 </p>
-                <div className="flex items-center gap-2 font-mono text-[12px] bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5">
                   <Webhook size={12} className="text-zinc-400 shrink-0" />
-                  <span className="flex-1 truncate text-zinc-700">
-                    {provider.webhookUrl}
+                  <span className="flex-1 font-mono text-[12px] text-zinc-700 dark:text-zinc-300 truncate">
+                    {provider?.webhook_url}
                   </span>
                   <button
                     onClick={() =>
-                      navigator.clipboard.writeText(provider.webhookUrl)
+                      navigator.clipboard.writeText(provider?.webhook_url)
                     }
-                    className="text-zinc-400 hover:text-zinc-700 transition-colors"
+                    className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0"
                   >
                     <Copy size={13} />
                   </button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide">
-                  Webhook Secret
-                </p>
-                <SecretField value={provider.webhookSecret} />
-              </div>
             </div>
 
             {/* Fees */}
-            <div className="bg-zinc-50 rounded-xl p-4">
-              <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide mb-3">
+            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-4 border border-zinc-100 dark:border-zinc-800">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 mb-3">
                 Transaction Fees
               </p>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { label: "Card", value: provider.fees.card },
-                  { label: "Bank Transfer", value: provider.fees.bank },
-                  { label: "USSD", value: provider.fees.ussd },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <p className="text-[11px] text-zinc-400">{label}</p>
-                    <p className="text-[13px] font-semibold text-zinc-800">
-                      {value}
-                    </p>
+                  {
+                    label: "Card",
+                    value: provider?.fees.card,
+                    icon: CreditCard,
+                  },
+                  {
+                    label: "Bank Transfer",
+                    value: provider?.fees.bank,
+                    icon: ArrowDownLeft,
+                  },
+                  {
+                    label: "USSD",
+                    value: provider?.fees.ussd,
+                    icon: Signal,
+                  },
+                ].map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                      <Icon size={12} className="text-zinc-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-zinc-400">{label}</p>
+                      <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200">
+                        {value}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
-              <Button variant="outline" size="sm" className="rounded-xl gap-2">
+            {/* Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5"
+              >
                 <Settings size={13} />
-                Edit Configuration
+                Edit config
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-xl gap-2 text-zinc-500"
+                className="rounded-xl gap-1.5 text-zinc-500"
               >
                 <ExternalLink size={13} />
-                Provider Dashboard
+                Dashboard
               </Button>
               {isActive && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-xl gap-2 text-emerald-700"
-                  onClick={async () => {
-                    toast.promise(new Promise((res) => setTimeout(res, 1500)), {
-                      loading: "Testing connection…",
-                      success: "Connection successful!",
-                      error: "Connection failed.",
-                    });
-                  }}
-                >
-                  <Zap size={13} />
-                  Test Connection
-                </Button>
+                <TestConnectionButton providerName={provider?.name} />
+              )}
+              {provider?.status === "degraded" && (
+                <button className="inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700 hover:text-amber-800 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors">
+                  <AlertCircle size={12} />
+                  View incident
+                </button>
               )}
             </div>
           </CardContent>
@@ -545,10 +679,10 @@ function ProviderCard({
   );
 }
 
-// ─── Webhook Log Row ──────────────────────────────────────────────────────────
+// ─── Webhook Row ──────────────────────────────────────────────────────────────
 
 function WebhookRow({ log }: { log: WebhookLog }) {
-  const statusConf = {
+  const status = {
     delivered: {
       icon: CheckCircle2,
       color: "text-emerald-600",
@@ -569,9 +703,9 @@ function WebhookRow({ log }: { log: WebhookLog }) {
     },
   }[log.status];
 
-  const Icon = statusConf.icon;
+  const Icon = status.icon;
 
-  const eventColor: Record<string, string> = {
+  const eventColors: Record<string, string> = {
     "charge.completed": "text-emerald-700 bg-emerald-50",
     "transfer.completed": "text-blue-700 bg-blue-50",
     "charge.failed": "text-red-700 bg-red-50",
@@ -583,28 +717,28 @@ function WebhookRow({ log }: { log: WebhookLog }) {
       <TableCell>
         <div className="flex items-center gap-2">
           <div
-            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${statusConf.bg}`}
+            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${status.bg}`}
           >
-            <Icon size={12} className={statusConf.color} />
+            <Icon size={12} className={status.color} />
           </div>
           <span
-            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${eventColor[log.event] ?? "bg-zinc-100 text-zinc-600"}`}
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${eventColors[log.event] ?? "bg-zinc-100 text-zinc-600"}`}
           >
             {log.event}
           </span>
         </div>
       </TableCell>
       <TableCell>
-        <span className="text-[12px] font-medium capitalize text-zinc-700">
+        <span className="text-[12px] font-medium capitalize text-zinc-700 dark:text-zinc-300">
           {log.provider}
         </span>
       </TableCell>
       <TableCell>
         <span
-          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusConf.bg} ${statusConf.color}`}
+          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}
         >
           <Icon size={10} />
-          {statusConf.label}
+          {status.label}
         </span>
       </TableCell>
       <TableCell muted>
@@ -615,23 +749,23 @@ function WebhookRow({ log }: { log: WebhookLog }) {
         </span>
       </TableCell>
       <TableCell muted>
-        <span className="text-[12px] tabular-nums">{log.responseTime}ms</span>
+        <span
+          className={`text-[12px] tabular-nums ${log.responseTime > 1000 ? "text-amber-600" : ""}`}
+        >
+          {log.responseTime}ms
+        </span>
       </TableCell>
-      {log.retries > 0 && (
-        <TableCell>
+      <TableCell>
+        {log.retries > 0 ? (
           <span className="text-[11px] bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full">
             {log.retries} retries
           </span>
-        </TableCell>
-      )}
-      {log.retries === 0 && <TableCell muted>—</TableCell>}
+        ) : (
+          <span className="text-[11px] text-zinc-300">—</span>
+        )}
+      </TableCell>
       <TableCell muted>
-        <span className="text-[12px]">
-          {new Date(log.createdAt).toLocaleTimeString("en-NG", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
+        <span className="text-[12px]">{timeAgo(log.createdAt)}</span>
       </TableCell>
       <TableCell align="right">
         <button
@@ -641,96 +775,104 @@ function WebhookRow({ log }: { log: WebhookLog }) {
           <Copy size={11} />
           Payload
         </button>
+        {log.status === "failed" && (
+          <button className="ml-1 inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 hover:text-rose-700 transition-colors px-2 py-1 rounded-lg hover:bg-rose-50">
+            <RotateCcw size={11} />
+            Retry
+          </button>
+        )}
       </TableCell>
     </TableRow>
   );
 }
 
-// ─── Stats Cards ──────────────────────────────────────────────────────────────
+// ─── Routing Rule Row ─────────────────────────────────────────────────────────
 
-function GatewayStats({ providers }: { providers: Provider[] | null }) {
-  const activeProviders = providers?.filter((p) => p.status === "active");
-  const totalVolume = providers?.reduce((s, p) => s + p.totalVolume, 0);
-  const totalTxns = providers?.reduce((s, p) => s + p.totalTransactions, 0);
-  const avgSuccess = activeProviders?.length
-    ? activeProviders?.reduce((s, p) => s + p.successRate, 0) /
-      activeProviders?.length
-    : 0;
+const ROUTING_RULES = [
+  {
+    label: "Card payments",
+    primary: "Flutterwave",
+    fallback: "Paystack",
+    condition: "If success rate < 90%",
+    icon: CreditCard,
+    color: "violet",
+  },
+  {
+    label: "Bank transfers",
+    primary: "Flutterwave",
+    fallback: "Monnify",
+    condition: "If provider is down",
+    icon: ArrowDownLeft,
+    color: "emerald",
+  },
+  {
+    label: "USSD payments",
+    primary: "Paystack",
+    fallback: "Flutterwave",
+    condition: "If response > 3s",
+    icon: Signal,
+    color: "amber",
+  },
+  {
+    label: "Payouts / Withdrawals",
+    primary: "Flutterwave",
+    fallback: "Paystack",
+    condition: "If failure rate > 5%",
+    icon: ArrowUpRight,
+    color: "blue",
+  },
+];
 
-  const stats = [
-    {
-      label: "Active Providers",
-      value: `${activeProviders?.length} / ${providers?.length}`,
-      icon: Globe,
-      color: "emerald",
-      sub: providers?.find((p) => p.isDefault)?.name + " is default",
-    },
-    {
-      label: "Total Volume",
-      value: formatNaira(totalVolume, { compact: true }),
-      icon: TrendingUp,
-      color: "blue",
-      sub: `${totalTxns?.toLocaleString()} transactions`,
-    },
-    {
-      label: "Avg Success Rate",
-      value: `${avgSuccess?.toFixed(1)}%`,
-      icon: Activity,
-      color: avgSuccess >= 95 ? "emerald" : avgSuccess >= 90 ? "amber" : "rose",
-      sub: "Across active providers",
-    },
-    {
-      label: "Webhook Health",
-      value: "94.2%",
-      icon: Webhook,
-      color: "amber",
-      sub: "Delivery success rate",
-    },
-  ] as const;
-
-  const colorMap: Record<string, string> = {
+function RoutingRuleRow({ rule }: { rule: (typeof ROUTING_RULES)[number] }) {
+  const Icon = rule.icon;
+  const iconBg: Record<string, string> = {
+    violet: "bg-violet-50 text-violet-700",
     emerald: "bg-emerald-50 text-emerald-700",
-    blue: "bg-blue-50 text-blue-700",
     amber: "bg-amber-50 text-amber-700",
-    rose: "bg-rose-50 text-rose-700",
+    blue: "bg-blue-50 text-blue-700",
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map(({ label, value, icon: Icon, color, sub }) => (
-        <Card
-          key={label}
-          variant="default"
-          className="hover:shadow-sm transition-shadow"
+    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group">
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg[rule.color]}`}
         >
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-start justify-between mb-3">
-              <span
-                className={`inline-flex items-center justify-center w-9 h-9 rounded-xl ${colorMap[color]}`}
-              >
-                <Icon size={18} />
-              </span>
-            </div>
-            <p
-              className="text-2xl font-bold text-zinc-900 tracking-tight"
-              style={{ fontFamily: "Georgia, serif" }}
-            >
-              {value}
-            </p>
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide mt-0.5">
-              {label}
-            </p>
-            {sub && <p className="text-[11px] text-zinc-500 mt-1">{sub}</p>}
-          </CardContent>
-        </Card>
-      ))}
+          <Icon size={15} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-zinc-900 dark:text-white">
+            {rule.label}
+          </p>
+          <p className="text-[11px] text-zinc-400 mt-0.5">{rule.condition}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 text-[12px] shrink-0">
+        <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 font-semibold px-2.5 py-1 rounded-lg">
+          {rule.primary}
+        </span>
+        <ArrowRight size={12} className="text-zinc-300" />
+        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium px-2.5 py-1 rounded-lg">
+          {rule.fallback}
+        </span>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="rounded-xl gap-1.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <Settings size={12} />
+        Edit
+      </Button>
     </div>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Tab key ──────────────────────────────────────────────────────────────────
 
 type TabKey = "providers" | "webhooks" | "routing";
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PaymentGatewayPage() {
   const [providers, setProviders] = useState<Provider[] | null>(null);
@@ -738,13 +880,16 @@ export default function PaymentGatewayPage() {
   const [filteredLogs, setFilteredLogs] = useState<WebhookLog[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("providers");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [webhookHealthPct, setWebhookHealthPct] = useState(0);
 
   const handleToggle = useCallback(
     (id: string) => {
       HTTPS.patch(`/admin/payment-gateway/providers/${id}/toggle`).then(
         ({ data: provider }) => {
-          setProviders((prev) =>
-            prev?.map((p) => (p.id === id ? (provider as Provider) : p)),
+          setProviders(
+            (prev) =>
+              prev?.map((p) => (p.id === id ? (provider as Provider) : p)) ??
+              null,
           );
           const p = providers?.find((x) => x.id === id);
           if (p) {
@@ -762,8 +907,8 @@ export default function PaymentGatewayPage() {
 
   const handleSetDefault = useCallback(
     (id: string) => {
-      setProviders((prev) =>
-        prev.map((p) => ({ ...p, isDefault: p.id === id })),
+      setProviders(
+        (prev) => prev?.map((p) => ({ ...p, isDefault: p.id === id })) ?? null,
       );
       const p = providers?.find((x) => x.id === id);
       if (p) toast.success(`${p.name} set as default provider`);
@@ -771,65 +916,71 @@ export default function PaymentGatewayPage() {
     [providers],
   );
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    // await new Promise((res) => setTimeout(res, 1200));
+  const fetchData = async () => {
     const [_providers, _webhookLogs] = await Promise.all([
-      HTTPS.get("/admin/payment-gateway/providers").then(({ data }) => data),
-      HTTPS.get("/admin/webhook-logs").then(({ data }) => data),
+      HTTPS.get("/admin/payment-gateways/providers").then(({ data }) => data),
+      HTTPS.get("/admin/webhook-logs").then(({ data }) => data ?? []),
     ]);
-    console.log({
-      _providers,
-      _webhookLogs,
-    });
     setProviders(_providers as Provider[]);
     setWebhookLogs(_webhookLogs as WebhookLog[]);
+    console.log(_providers, _webhookLogs);
 
-    setIsRefreshing(false);
-    toast.success("Provider status refreshed");
+    // Compute webhook health
+    const logs = _webhookLogs as WebhookLog[];
+    if (logs?.length) {
+      const delivered = logs.filter((l) => l.status === "delivered").length;
+      setWebhookHealthPct(Math.round((delivered / logs.length) * 100));
+    }
   };
 
   useLayoutEffect(() => {
-    const fetchData = async () => {
-      const [_providers, _webhookLogs] = await Promise.all([
-        HTTPS.get("/admin/payment-gateway/providers").then(
-          ({ data }) => data ?? [],
-        ),
-        HTTPS.get("/admin/webhook-logs").then(({ data }) => data ?? []),
-      ]);
-      console.log({
-        _providers,
-        _webhookLogs,
-      });
-      setProviders(_providers as Provider[]);
-      setWebhookLogs(_webhookLogs as WebhookLog[]);
-    };
     fetchData();
   }, []);
 
-  const TABS: { key: TabKey; label: string }[] = [
-    { key: "providers", label: "Providers" },
-    { key: "webhooks", label: "Webhook Logs" },
-    { key: "routing", label: "Routing Rules" },
-  ];
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchData();
+    setIsRefreshing(false);
+    toast.success("Status refreshed");
+  };
 
-  const degradedCount =
-    providers?.filter((p) => p.status === "degraded")?.length || 0;
+  const activeProviders = providers?.filter((p) => p.status === "active") ?? [];
+  const degradedProviders =
+    providers?.filter((p) => p.status === "degraded") ?? [];
+  const totalVolume = providers?.reduce((s, p) => s + p.total_volume, 0) ?? 0;
+  const avgSuccess = activeProviders.length
+    ? activeProviders.reduce((s, p) => s + p.success_rate, 0) /
+      activeProviders.length
+    : 0;
+
+  const TABS: { key: TabKey; label: string; count?: number }[] = [
+    {
+      key: "providers",
+      label: "Providers",
+      count: providers?.length ?? 0,
+    },
+    {
+      key: "webhooks",
+      label: "Webhook Logs",
+      count: webhookLogs?.filter((l) => l.status === "failed").length,
+    },
+    { key: "routing", label: "Routing Rules", count: ROUTING_RULES.length },
+  ];
 
   return (
     <div className="min-h-full bg-zinc-50/40">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1
-              className="text-2xl font-bold text-zinc-900 tracking-tight"
+              className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight"
               style={{ fontFamily: "Georgia, serif" }}
             >
               Payment Gateway
             </h1>
             <p className="text-zinc-500 text-sm mt-0.5">
-              Manage payment providers, webhooks, and transaction routing
+              Manage providers, webhooks, and smart routing rules
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -857,105 +1008,234 @@ export default function PaymentGatewayPage() {
           </div>
         </div>
 
-        {/* Alert banner */}
-        {degradedCount > 0 && (
-          <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+        {/* ── Degraded alert ──────────────────────────────────────────────── */}
+        {degradedProviders.length > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
             <AlertTriangle size={16} className="text-amber-600 shrink-0" />
-            <p className="text-sm text-amber-800 font-medium flex-1">
-              {degradedCount} provider{degradedCount > 1 ? "s are" : " is"}{" "}
-              experiencing degraded performance
+            <p className="text-sm text-amber-800 dark:text-amber-300 font-medium flex-1">
+              {degradedProviders.length} provider
+              {degradedProviders.length > 1 ? "s" : ""} experiencing degraded
+              performance — {degradedProviders.map((p) => p.name).join(", ")}
             </p>
             <Button
               size="sm"
               variant="secondary"
-              className="rounded-xl text-amber-700 bg-amber-100 hover:bg-amber-200 border-amber-200"
+              className="rounded-xl text-amber-700 bg-amber-100 hover:bg-amber-200 border-amber-200 shrink-0"
             >
-              View details
+              View incident
             </Button>
           </div>
         )}
 
-        {/* Stats */}
-        <GatewayStats providers={providers} />
+        {/* ── Stat cards ──────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <GatewayStatCard
+            icon={Globe}
+            label="Active providers"
+            value={`${activeProviders.length} / ${providers?.length ?? 0}`}
+            sub={
+              providers?.find((p) => p.isDefault)?.name
+                ? `${providers?.find((p) => p.isDefault)?.name} is default`
+                : undefined
+            }
+            color="emerald"
+          />
+          <GatewayStatCard
+            icon={TrendingUp}
+            label="Total volume"
+            value={formatNaira(totalVolume, { compact: true })}
+            sub={`${providers?.reduce((s, p) => s + p.total_transactions, 0).toLocaleString()} txns`}
+            color="blue"
+            trend={{ dir: "up", value: "+12%" }}
+          />
+          <GatewayStatCard
+            icon={Activity}
+            label="Avg success rate"
+            value={`${avgSuccess.toFixed(1)}%`}
+            sub="Across active providers"
+            color={
+              avgSuccess >= 95 ? "emerald" : avgSuccess >= 90 ? "amber" : "rose"
+            }
+          />
+          <GatewayStatCard
+            icon={Webhook}
+            label="Webhook health"
+            value={`${webhookHealthPct}%`}
+            sub={`${webhookLogs?.filter((l) => l.status === "failed").length ?? 0} failures`}
+            color={
+              webhookHealthPct >= 95
+                ? "emerald"
+                : webhookHealthPct >= 85
+                  ? "amber"
+                  : "rose"
+            }
+          />
+        </div>
 
-        {/* Tabs */}
+        {/* ── Main card with tabs ─────────────────────────────────────────── */}
         <Card variant="default" className="overflow-hidden">
-          <div className="flex border-b border-zinc-100 overflow-x-auto">
+          {/* Tab bar */}
+          <div className="flex border-b border-zinc-100 dark:border-zinc-800 overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-6 py-3.5 text-[13px] font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                className={`relative flex items-center gap-2 px-6 py-4 text-[13px] font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
                   activeTab === tab.key
-                    ? "border-emerald-600 text-emerald-700"
-                    : "border-transparent text-zinc-500 hover:text-zinc-700"
+                    ? "border-emerald-600 text-emerald-700 dark:text-emerald-400"
+                    : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                 }`}
               >
                 {tab.label}
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span
+                    className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center ${
+                      tab.key === "webhooks" && tab.count > 0
+                        ? "bg-rose-100 text-rose-700"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
-          {/* ── Providers tab ─────────────────────────────────────────────── */}
+          {/* ── Providers tab ────────────────────────────────────────────── */}
           {activeTab === "providers" && (
             <CardContent className="space-y-4 pt-5">
               {providers === null ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 size={20} className="animate-spin text-zinc-400" />
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 size={22} className="animate-spin text-zinc-400" />
+                  <p className="text-sm text-zinc-500">Loading providers…</p>
                 </div>
               ) : providers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 gap-3">
-                  <CreditCard size={24} className="text-zinc-400" />
-                  <p className="text-sm text-zinc-500">No providers found.</p>
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <CreditCard size={28} className="text-zinc-300" />
+                  <p className="text-sm text-zinc-500">
+                    No providers configured
+                  </p>
+                  <AddProviderDialog>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="rounded-xl gap-1.5"
+                    >
+                      <Settings size={13} /> Configure provider
+                    </Button>
+                  </AddProviderDialog>
                 </div>
               ) : (
-                providers.map((p) => (
-                  <ProviderCard
-                    key={p.id}
-                    provider={p}
-                    onToggle={handleToggle}
-                    onSetDefault={handleSetDefault}
-                  />
-                ))
+                <>
+                  <div className="space-y-3">
+                    {providers.map((p) => (
+                      <ProviderCard
+                        key={p.id}
+                        provider={p}
+                        onToggle={handleToggle}
+                        onSetDefault={handleSetDefault}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Add provider CTA */}
+                  <button className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl text-[13px] font-medium text-zinc-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:border-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                    <Settings size={14} />
+                    Add payment provider
+                  </button>
+                </>
               )}
             </CardContent>
           )}
 
-          {/* ── Webhooks tab ──────────────────────────────────────────────── */}
+          {/* ── Webhooks tab ─────────────────────────────────────────────── */}
           {activeTab === "webhooks" && (
-            <CardContent className="pt-4 pb-0 px-0">
-              <div className="px-5 pb-4">
-                <Filter
-                  data={webhookLogs || []}
-                  onResult={setFilteredLogs}
-                  searchFields={["event", "provider"]}
-                  searchPlaceholder="Search by event or provider…"
-                  quickGroup="status"
-                  groups={[
+            <CardContent className="pt-5 pb-0 px-0">
+              {/* Summary bar */}
+              {webhookLogs && webhookLogs.length > 0 && (
+                <div className="flex items-center gap-6 px-5 pb-4 flex-wrap">
+                  {[
                     {
-                      key: "status",
-                      label: "Status",
-                      options: [
-                        { value: "all", label: "All" },
-                        { value: "delivered", label: "Delivered" },
-                        { value: "failed", label: "Failed" },
-                        { value: "pending", label: "Pending" },
-                      ],
-                      match: (item, v) => (item as WebhookLog).status === v,
+                      label: "Delivered",
+                      count: webhookLogs.filter((l) => l.status === "delivered")
+                        .length,
+                      color: "text-emerald-700",
+                      bg: "bg-emerald-50",
                     },
                     {
-                      key: "provider",
-                      label: "Provider",
-                      options: [
-                        { value: "all", label: "All" },
-                        { value: "flutterwave", label: "Flutterwave" },
-                        { value: "paystack", label: "Paystack" },
-                      ],
-                      match: (item, v) => (item as WebhookLog).provider === v,
+                      label: "Failed",
+                      count: webhookLogs.filter((l) => l.status === "failed")
+                        .length,
+                      color: "text-rose-600",
+                      bg: "bg-rose-50",
                     },
-                  ]}
-                />
-              </div>
+                    {
+                      label: "Pending",
+                      count: webhookLogs.filter((l) => l.status === "pending")
+                        .length,
+                      color: "text-amber-600",
+                      bg: "bg-amber-50",
+                    },
+                  ].map(({ label, count, color, bg }) => (
+                    <div
+                      key={label}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${bg}`}
+                    >
+                      <span className={`text-[13px] font-bold ${color}`}>
+                        {count}
+                      </span>
+                      <span
+                        className={`text-[12px] font-medium ${color} opacity-70`}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                  ))}
+
+                  <button className="ml-auto inline-flex items-center gap-1.5 text-[12px] font-medium text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-xl hover:bg-rose-50 transition-colors">
+                    <RotateCcw size={12} />
+                    Retry all failed
+                  </button>
+                </div>
+              )}
+
+              {/* Filter */}
+              {webhookLogs && webhookLogs.length > 0 && (
+                <div className="px-5 pb-4">
+                  <Filter
+                    data={webhookLogs}
+                    onResult={setFilteredLogs}
+                    searchFields={["event", "provider"]}
+                    searchPlaceholder="Search by event or provider…"
+                    quickGroup="status"
+                    groups={[
+                      {
+                        key: "status",
+                        label: "Status",
+                        options: [
+                          { value: "all", label: "All" },
+                          { value: "delivered", label: "Delivered" },
+                          { value: "failed", label: "Failed" },
+                          { value: "pending", label: "Pending" },
+                        ],
+                        match: (item, v) => (item as WebhookLog).status === v,
+                      },
+                      {
+                        key: "provider",
+                        label: "Provider",
+                        options: [
+                          { value: "all", label: "All" },
+                          { value: "flutterwave", label: "Flutterwave" },
+                          { value: "paystack", label: "Paystack" },
+                          { value: "monnify", label: "Monnify" },
+                        ],
+                        match: (item, v) => (item as WebhookLog).provider === v,
+                      },
+                    ]}
+                  />
+                </div>
+              )}
 
               <div className="overflow-x-auto">
                 <Table>
@@ -965,17 +1245,26 @@ export default function PaymentGatewayPage() {
                       <TableHead>Provider</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>HTTP</TableHead>
-                      <TableHead>Time</TableHead>
+                      <TableHead>Response</TableHead>
                       <TableHead>Retries</TableHead>
                       <TableHead>When</TableHead>
-                      <TableHead align="right">Payload</TableHead>
+                      <TableHead align="right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLogs.length === 0 ? (
+                    {!webhookLogs ? (
+                      <TableRow>
+                        <TableCell colSpan={8}>
+                          <div className="flex items-center justify-center py-10 gap-2 text-zinc-400">
+                            <Loader2 size={16} className="animate-spin" />
+                            Loading webhook logs…
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredLogs.length === 0 ? (
                       <TableEmpty
                         colSpan={8}
-                        message="No webhook logs found."
+                        message="No webhook logs match your filters."
                       />
                     ) : (
                       filteredLogs.map((log) => (
@@ -985,139 +1274,107 @@ export default function PaymentGatewayPage() {
                   </TableBody>
                 </Table>
               </div>
-
-              {/* Summary bar */}
-              <div className="flex items-center gap-6 px-5 py-3 bg-zinc-50 border-t border-zinc-100">
-                {[
-                  {
-                    label: "Delivered",
-                    count: webhookLogs?.filter((l) => l.status === "delivered")
-                      .length,
-                    color: "text-emerald-700",
-                  },
-                  {
-                    label: "Failed",
-                    count: webhookLogs?.filter((l) => l.status === "failed")
-                      .length,
-                    color: "text-red-600",
-                  },
-                  {
-                    label: "Pending",
-                    count: webhookLogs?.filter((l) => l.status === "pending")
-                      .length,
-                    color: "text-amber-600",
-                  },
-                ].map(({ label, count, color }) => (
-                  <span key={label} className="text-[12px] text-zinc-500">
-                    {label}:{" "}
-                    <span className={`font-semibold ${color}`}>{count}</span>
-                  </span>
-                ))}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto text-[11px] rounded-xl gap-1 text-zinc-500"
-                >
-                  <RefreshCw size={11} />
-                  Retry all failed
-                </Button>
-              </div>
             </CardContent>
           )}
 
-          {/* ── Routing tab ───────────────────────────────────────────────── */}
+          {/* ── Routing tab ──────────────────────────────────────────────── */}
           {activeTab === "routing" && (
-            <CardContent className="pt-5 space-y-5">
-              <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <AlertCircle
-                  size={16}
-                  className="text-blue-600 shrink-0 mt-0.5"
+            <CardContent className="pt-5 space-y-5 pb-6">
+              {/* Info banner */}
+              <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
+                <Info
+                  size={15}
+                  className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5"
                 />
                 <div>
-                  <p className="text-[13px] font-semibold text-blue-900">
-                    Smart Routing
+                  <p className="text-[13px] font-semibold text-blue-900 dark:text-blue-300">
+                    Smart routing enabled
                   </p>
-                  <p className="text-[12px] text-blue-700 mt-0.5">
+                  <p className="text-[12px] text-blue-700 dark:text-blue-400 mt-0.5 leading-relaxed">
                     AjoSave automatically routes transactions to the best
                     available provider based on success rate, response time, and
-                    payment method. Configure fallback rules below.
+                    payment method. Fallback rules activate automatically when
+                    primary providers breach thresholds.
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {[
-                  {
-                    label: "Card payments",
-                    primary: "Flutterwave",
-                    fallback: "Paystack",
-                    condition: "If success rate < 90%",
-                  },
-                  {
-                    label: "Bank transfers",
-                    primary: "Flutterwave",
-                    fallback: "Monnify",
-                    condition: "If provider is down",
-                  },
-                  {
-                    label: "USSD payments",
-                    primary: "Paystack",
-                    fallback: "Flutterwave",
-                    condition: "If response > 3s",
-                  },
-                  {
-                    label: "Payouts / Withdrawals",
-                    primary: "Flutterwave",
-                    fallback: "Paystack",
-                    condition: "If failure rate > 5%",
-                  },
-                ].map((rule) => (
-                  <div
-                    key={rule.label}
-                    className="flex items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200 hover:border-zinc-300 transition-colors"
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
-                        <CreditCard size={14} className="text-zinc-500" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-semibold text-zinc-900">
-                          {rule.label}
-                        </p>
-                        <p className="text-[11px] text-zinc-400 mt-0.5">
-                          {rule.condition}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-[12px] shrink-0">
-                      <span className="bg-emerald-50 text-emerald-800 font-semibold px-2.5 py-1 rounded-lg">
-                        {rule.primary}
-                      </span>
-                      <ChevronRight size={12} className="text-zinc-300" />
-                      <span className="bg-zinc-100 text-zinc-600 font-medium px-2.5 py-1 rounded-lg">
-                        {rule.fallback}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-xl gap-1 text-zinc-500 shrink-0"
-                    >
-                      <Settings size={12} />
-                      Edit
-                    </Button>
-                  </div>
+              {/* Rules */}
+              <div className="space-y-2">
+                {ROUTING_RULES.map((rule) => (
+                  <RoutingRuleRow key={rule.label} rule={rule} />
                 ))}
               </div>
 
-              <div className="flex justify-end pt-2">
+              {/* Failover thresholds */}
+              <Card
+                variant="flat"
+                className="border border-zinc-100 dark:border-zinc-800"
+              >
+                <CardHeader>
+                  <CardTitle className="text-[14px]">
+                    Failover thresholds
+                  </CardTitle>
+                  <CardDescription>
+                    Adjust when automatic failover triggers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    {
+                      label: "Success rate threshold",
+                      value: "90%",
+                      hint: "Switch provider when success drops below",
+                    },
+                    {
+                      label: "Response time threshold",
+                      value: "3 000ms",
+                      hint: "Switch when avg response exceeds",
+                    },
+                    {
+                      label: "Failure rate threshold",
+                      value: "5%",
+                      hint: "Switch when failure rate exceeds",
+                    },
+                    {
+                      label: "Cooldown period",
+                      value: "15 min",
+                      hint: "Wait before retrying failed provider",
+                    },
+                  ].map(({ label, value, hint }) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between text-[13px] py-2.5 border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                    >
+                      <div>
+                        <p className="font-medium text-zinc-900 dark:text-white">
+                          {label}
+                        </p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                          {hint}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200 text-[13px]">
+                          {value}
+                        </span>
+                        <button className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                          <Settings size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
                 <Button
                   variant="primary"
                   size="sm"
                   className="rounded-xl gap-2"
                 >
                   <Shield size={13} />
-                  Save Routing Rules
+                  Save routing rules
                 </Button>
               </div>
             </CardContent>

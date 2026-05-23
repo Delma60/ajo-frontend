@@ -54,6 +54,8 @@ export default function ExploreInvestmentsPage() {
     loadInvestments();
   }, []);
 
+  console.log(filtered)
+
   return (
     <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto pb-8 p-6">
       {/* Page Header */}
@@ -133,11 +135,11 @@ export default function ExploreInvestmentsPage() {
               <div className="w-full bg-emerald-900/50 rounded-full h-2 mt-4">
                 <div
                   className="bg-emerald-400 h-2 rounded-full"
-                  style={{ width: `${featuredInvestment?.funded_percentage}%` }}
+                  style={{ width: `${featuredInvestment?.progress_percent}%` }}
                 ></div>
               </div>
               <p className="text-xs text-emerald-200 mt-1">
-                {featuredInvestment?.funded_percentage}% Funded •{" "}
+                {featuredInvestment?.progress_percent}% Funded •{" "}
                 {featuredInvestment?.investors?.length} Investors joined
               </p>
             </div>
@@ -225,9 +227,9 @@ export default function ExploreInvestmentsPage() {
                   </div>
                   <span
                     className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-semibold rounded-full border
-                    ${inv.risk === "Low" || inv.risk === "Very Low" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
-                    ${inv.risk === "Moderate" ? "bg-amber-50 text-amber-700 border-amber-200" : ""}
-                    ${inv.risk === "High" ? "bg-red-50 text-red-700 border-red-200" : ""}
+                    ${inv.risk === "low" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
+                    ${inv.risk === "medium" ? "bg-amber-50 text-amber-700 border-amber-200" : ""}
+                    ${inv.risk === "high" ? "bg-red-50 text-red-700 border-red-200" : ""}
                   `}
                   >
                     {inv.risk} Risk
@@ -264,13 +266,13 @@ export default function ExploreInvestmentsPage() {
                       Min. {formatNaira(inv.min_investment)}
                     </span>
                     <span className="font-medium text-zinc-900">
-                      {inv.funded_percentage}% Funded
+                      {inv.progress_percent}% Funded
                     </span>
                   </div>
                   <div className="w-full bg-zinc-100 rounded-full h-1.5">
                     <div
                       className="bg-emerald-600 h-1.5 rounded-full"
-                      style={{ width: `${inv.funded_percentage}%` }}
+                      style={{ width: `${inv.progress_percent}%` }}
                     ></div>
                   </div>
                 </div>
