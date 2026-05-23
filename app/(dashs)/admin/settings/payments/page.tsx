@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -35,6 +35,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { HTTPS } from "@/lib/http";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -435,6 +436,8 @@ export default function AdminPaymentSettingsPage() {
     mobile_money: false,
   });
 
+
+
   const [provider, setProvider] = useState<ProviderConfig>({
     default_provider: "flutterwave",
     fallback_provider: "paystack",
@@ -484,6 +487,23 @@ export default function AdminPaymentSettingsPage() {
     setIsDirty(false);
     toast.info("Changes discarded.");
   };
+
+  //   reset default
+  const handleReset = () => {};
+
+  const fetchPaymentSettings = async () => {
+    try {
+        const { data=[] } = await HTTPS.get("/admin/settings/app")
+        console.log(data)
+    } catch (e) {
+        
+    }
+
+  }
+
+  useLayoutEffect(() => {
+    fetchPaymentSettings()
+  }, [])
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
