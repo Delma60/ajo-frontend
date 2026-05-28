@@ -36,61 +36,17 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { HTTPS } from "@/lib/http";
+import {
+  FeeConfig,
+  ISettings,
+  LimitConfig,
+  MethodConfig,
+  PayoutConfig,
+  PenaltyConfig,
+  ProviderConfig,
+} from "@/lib/types/settings.types";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-
-interface FeeConfig {
-  contribution_fee_pct: number;
-  withdrawal_fee_pct: number;
-  withdrawal_fee_flat: number;
-  withdrawal_fee_cap: number;
-  creation_fee_pct: number;
-  topup_fee_pct: number;
-  referral_reward: number;
-}
-
-interface PayoutConfig {
-  processing_window_hours: number;
-  payout_day: "same_day" | "next_day" | "scheduled";
-  cycle_grace_period_hours: number;
-  auto_trigger: boolean;
-  max_payout_per_cycle: number;
-  min_pool_before_payout: number;
-}
-
-interface LimitConfig {
-  min_contribution: number;
-  max_contribution: number;
-  min_withdrawal: number;
-  max_withdrawal_daily: number;
-  max_group_size: number;
-  min_group_size: number;
-  max_cycles_per_group: number;
-}
-
-interface PenaltyConfig {
-  late_payment_fee_pct: number;
-  grace_period_hours: number;
-  max_defaults_before_removal: number;
-  penalty_applies_after_hours: number;
-  auto_remove_on_default: boolean;
-  freeze_on_default: boolean;
-}
-
-interface MethodConfig {
-  card: boolean;
-  bank_transfer: boolean;
-  ussd: boolean;
-  wallet: boolean;
-  mobile_money: boolean;
-}
-
-interface ProviderConfig {
-  default_provider: "flutterwave" | "paystack" | "monnify";
-  fallback_provider: "flutterwave" | "paystack" | "monnify" | "none";
-  auto_failover: boolean;
-  failover_threshold_pct: number;
-}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -387,63 +343,21 @@ export default function AdminPaymentSettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionKey>("fees");
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // ── State ──────────────────────────────────────────────────────────────────
 
-  const [fees, setFees] = useState<FeeConfig>({
-    contribution_fee_pct: 0,
-    withdrawal_fee_pct: 0.5,
-    withdrawal_fee_flat: 50,
-    withdrawal_fee_cap: 2000,
-    creation_fee_pct: 5,
-    topup_fee_pct: 0,
-    referral_reward: 1000,
-  });
+  const [fees, setFees] = useState<FeeConfig | null>(null);
 
-  const [payouts, setPayouts] = useState<PayoutConfig>({
-    processing_window_hours: 24,
-    payout_day: "same_day",
-    cycle_grace_period_hours: 48,
-    auto_trigger: true,
-    max_payout_per_cycle: 5000000,
-    min_pool_before_payout: 0,
-  });
+  const [payouts, setPayouts] = useState<PayoutConfig | null>(null);
 
-  const [limits, setLimits] = useState<LimitConfig>({
-    min_contribution: 500,
-    max_contribution: 5000000,
-    min_withdrawal: 500,
-    max_withdrawal_daily: 2000000,
-    max_group_size: 100,
-    min_group_size: 2,
-    max_cycles_per_group: 200,
-  });
+  const [limits, setLimits] = useState<LimitConfig | null>(null);
 
-  const [penalties, setPenalties] = useState<PenaltyConfig>({
-    late_payment_fee_pct: 10,
-    grace_period_hours: 24,
-    max_defaults_before_removal: 3,
-    penalty_applies_after_hours: 48,
-    auto_remove_on_default: false,
-    freeze_on_default: true,
-  });
+  const [penalties, setPenalties] = useState<PenaltyConfig | null>(null);
 
-  const [methods, setMethods] = useState<MethodConfig>({
-    card: true,
-    bank_transfer: true,
-    ussd: true,
-    wallet: true,
-    mobile_money: false,
-  });
+  const [methods, setMethods] = useState<MethodConfig | null>(null);
 
-
-
-  const [provider, setProvider] = useState<ProviderConfig>({
-    default_provider: "flutterwave",
-    fallback_provider: "paystack",
-    auto_failover: true,
-    failover_threshold_pct: 90,
-  });
+  const [provider, setProvider] = useState<ProviderConfig | null>(null);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -475,9 +389,15 @@ export default function AdminPaymentSettingsPage() {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
+      setIsSaving(true);
+    try {
+        await HTTPS.post("/settings")
+    } catch (error) {
+        
+    }
     // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200));
+    // await new Promise((r) => setTimeout(r, 1200));
+
     setIsSaving(false);
     setIsDirty(false);
     toast.success("Payment settings saved successfully.");
@@ -489,21 +409,33 @@ export default function AdminPaymentSettingsPage() {
   };
 
   //   reset default
-  const handleReset = () => {};
+  const handleReset = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchPaymentSettings();
+      toast.info("Settings refreshed from server.");
+    } catch (error) {
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const fetchPaymentSettings = async () => {
     try {
-        const { data=[] } = await HTTPS.get("/admin/settings/app")
-        console.log(data)
-    } catch (e) {
-        
-    }
-
-  }
+      const { data } = await HTTPS.get<ISettings>("/admin/settings/app");
+      setFees(data?.fees || null);
+      setPayouts(data?.payout || null);
+      setLimits(data?.limits || null);
+      setPenalties(data?.penalties || null);
+      setMethods(data?.payment_methods || null);
+      setProvider(data?.provider || null);
+      console.log(data)
+    } catch (e) {}
+  };
 
   useLayoutEffect(() => {
-    fetchPaymentSettings()
-  }, [])
+    fetchPaymentSettings();
+  }, []);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -527,7 +459,7 @@ export default function AdminPaymentSettingsPage() {
             variant="secondary"
             size="sm"
             className="gap-1.5 rounded-xl"
-            onClick={() => toast.info("Settings refreshed from server.")}
+            onClick={handleReset}
           >
             <RefreshCw size={14} />
             Reset to defaults
@@ -596,15 +528,15 @@ export default function AdminPaymentSettingsPage() {
                       {[
                         {
                           label: "Creation fee",
-                          value: `${fees.creation_fee_pct}%`,
+                          value: `${fees?.creation_fee_pct}%`,
                         },
                         {
                           label: "Withdrawal fee",
-                          value: `${fees.withdrawal_fee_pct}%`,
+                          value: `${fees?.withdrawal_fee_pct}%`,
                         },
                         {
                           label: "Referral reward",
-                          value: fmt(fees.referral_reward),
+                          value: fmt(fees?.referral_reward || 0),
                         },
                       ].map(({ label, value }) => (
                         <div key={label} className="text-center">
@@ -624,7 +556,7 @@ export default function AdminPaymentSettingsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <NumberInput
                         label="Circle creation fee (%)"
-                        value={fees.creation_fee_pct}
+                        value={fees?.creation_fee_pct || 0}
                         onChange={(v) => updateFees({ creation_fee_pct: v })}
                         min={0}
                         max={20}
@@ -634,7 +566,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Contribution fee (%)"
-                        value={fees.contribution_fee_pct}
+                        value={fees?.contribution_fee_pct || 0}
                         onChange={(v) =>
                           updateFees({ contribution_fee_pct: v })
                         }
@@ -646,7 +578,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Withdrawal fee (%)"
-                        value={fees.withdrawal_fee_pct}
+                        value={fees?.withdrawal_fee_pct || 0}
                         onChange={(v) => updateFees({ withdrawal_fee_pct: v })}
                         min={0}
                         max={10}
@@ -656,7 +588,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Withdrawal flat fee (₦)"
-                        value={fees.withdrawal_fee_flat}
+                        value={fees?.withdrawal_fee_flat || 0}
                         onChange={(v) => updateFees({ withdrawal_fee_flat: v })}
                         min={0}
                         prefix="₦"
@@ -664,7 +596,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Withdrawal fee cap (₦)"
-                        value={fees.withdrawal_fee_cap}
+                        value={fees?.withdrawal_fee_cap || 0}
                         onChange={(v) => updateFees({ withdrawal_fee_cap: v })}
                         min={0}
                         prefix="₦"
@@ -672,7 +604,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Top-up fee (%)"
-                        value={fees.topup_fee_pct}
+                        value={fees?.topup_fee_pct || 0}
                         onChange={(v) => updateFees({ topup_fee_pct: v })}
                         min={0}
                         max={5}
@@ -697,7 +629,7 @@ export default function AdminPaymentSettingsPage() {
                   <CardContent className="pt-5">
                     <NumberInput
                       label="Referral reward amount (₦)"
-                      value={fees.referral_reward}
+                      value={fees?.referral_reward || 0}
                       onChange={(v) => updateFees({ referral_reward: v })}
                       min={0}
                       prefix="₦"
@@ -734,7 +666,7 @@ export default function AdminPaymentSettingsPage() {
                             type="button"
                             onClick={() => updatePayouts({ payout_day: opt })}
                             className={`p-3 rounded-xl border-2 text-left transition-all ${
-                              payouts.payout_day === opt
+                              payouts?.payout_day === opt
                                 ? "border-emerald-600 bg-emerald-50/40"
                                 : "border-zinc-200 hover:border-zinc-300"
                             }`}
@@ -759,7 +691,7 @@ export default function AdminPaymentSettingsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <NumberInput
                       label="Processing window (hours)"
-                      value={payouts.processing_window_hours}
+                      value={payouts?.processing_window_hours || 0}
                       onChange={(v) =>
                         updatePayouts({ processing_window_hours: v })
                       }
@@ -770,7 +702,7 @@ export default function AdminPaymentSettingsPage() {
                     />
                     <NumberInput
                       label="Cycle grace period (hours)"
-                      value={payouts.cycle_grace_period_hours}
+                      value={payouts?.cycle_grace_period_hours || 0}
                       onChange={(v) =>
                         updatePayouts({ cycle_grace_period_hours: v })
                       }
@@ -781,7 +713,7 @@ export default function AdminPaymentSettingsPage() {
                     />
                     <NumberInput
                       label="Max payout per cycle (₦)"
-                      value={payouts.max_payout_per_cycle}
+                      value={payouts?.max_payout_per_cycle || 0}
                       onChange={(v) =>
                         updatePayouts({ max_payout_per_cycle: v })
                       }
@@ -791,7 +723,7 @@ export default function AdminPaymentSettingsPage() {
                     />
                     <NumberInput
                       label="Min pool before payout (₦)"
-                      value={payouts.min_pool_before_payout}
+                      value={payouts?.min_pool_before_payout || 0}
                       onChange={(v) =>
                         updatePayouts({ min_pool_before_payout: v })
                       }
@@ -806,7 +738,7 @@ export default function AdminPaymentSettingsPage() {
                       <ToggleRow
                         label="Auto-trigger cycle payouts"
                         description="Automatically process payouts when a cycle completes, without manual admin action"
-                        value={payouts.auto_trigger}
+                        value={payouts?.auto_trigger || false}
                         onChange={(v) => updatePayouts({ auto_trigger: v })}
                       />
                     </div>
@@ -835,7 +767,7 @@ export default function AdminPaymentSettingsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <NumberInput
                         label="Minimum contribution (₦)"
-                        value={limits.min_contribution}
+                        value={limits?.min_contribution || 0}
                         onChange={(v) => updateLimits({ min_contribution: v })}
                         min={0}
                         prefix="₦"
@@ -843,7 +775,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Maximum contribution (₦)"
-                        value={limits.max_contribution}
+                        value={limits?.max_contribution || 0}
                         onChange={(v) => updateLimits({ max_contribution: v })}
                         min={0}
                         prefix="₦"
@@ -859,7 +791,7 @@ export default function AdminPaymentSettingsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <NumberInput
                         label="Minimum withdrawal (₦)"
-                        value={limits.min_withdrawal}
+                        value={limits?.min_withdrawal || 0}
                         onChange={(v) => updateLimits({ min_withdrawal: v })}
                         min={0}
                         prefix="₦"
@@ -867,7 +799,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Max withdrawal per day (₦)"
-                        value={limits.max_withdrawal_daily}
+                        value={limits?.max_withdrawal_daily || 0}
                         onChange={(v) =>
                           updateLimits({ max_withdrawal_daily: v })
                         }
@@ -885,7 +817,7 @@ export default function AdminPaymentSettingsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <NumberInput
                         label="Min group size"
-                        value={limits.min_group_size}
+                        value={limits?.min_group_size || 0}
                         onChange={(v) => updateLimits({ min_group_size: v })}
                         min={2}
                         max={10}
@@ -893,7 +825,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Max group size"
-                        value={limits.max_group_size}
+                        value={limits?.max_group_size || 0}
                         onChange={(v) => updateLimits({ max_group_size: v })}
                         min={2}
                         max={500}
@@ -901,7 +833,7 @@ export default function AdminPaymentSettingsPage() {
                       />
                       <NumberInput
                         label="Max cycles per group"
-                        value={limits.max_cycles_per_group}
+                        value={limits?.max_cycles_per_group || 0}
                         onChange={(v) =>
                           updateLimits({ max_cycles_per_group: v })
                         }
@@ -936,15 +868,15 @@ export default function AdminPaymentSettingsPage() {
                       <strong>
                         ₦
                         {(
-                          (50000 * penalties.late_payment_fee_pct) /
+                          (50000 * (penalties?.late_payment_fee_pct || 0)) /
                           100
                         ).toLocaleString()}
                       </strong>{" "}
-                      after <strong>{penalties.grace_period_hours}h</strong>{" "}
+                      after <strong>{penalties?.grace_period_hours}h</strong>{" "}
                       grace period. After{" "}
-                      <strong>{penalties.max_defaults_before_removal}</strong>{" "}
+                      <strong>{penalties?.max_defaults_before_removal}</strong>{" "}
                       defaults, they
-                      {penalties.auto_remove_on_default
+                      {penalties?.auto_remove_on_default
                         ? " will be removed automatically"
                         : " will be reviewed by admin"}
                       .
@@ -954,7 +886,7 @@ export default function AdminPaymentSettingsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <NumberInput
                       label="Late payment penalty (%)"
-                      value={penalties.late_payment_fee_pct}
+                      value={penalties?.late_payment_fee_pct || 0}
                       onChange={(v) =>
                         updatePenalties({ late_payment_fee_pct: v })
                       }
@@ -966,7 +898,7 @@ export default function AdminPaymentSettingsPage() {
                     />
                     <NumberInput
                       label="Grace period (hours)"
-                      value={penalties.grace_period_hours}
+                      value={penalties?.grace_period_hours || 0}
                       onChange={(v) =>
                         updatePenalties({ grace_period_hours: v })
                       }
@@ -977,7 +909,7 @@ export default function AdminPaymentSettingsPage() {
                     />
                     <NumberInput
                       label="Penalty applies after (hours)"
-                      value={penalties.penalty_applies_after_hours}
+                      value={penalties?.penalty_applies_after_hours || 0}
                       onChange={(v) =>
                         updatePenalties({ penalty_applies_after_hours: v })
                       }
@@ -987,7 +919,7 @@ export default function AdminPaymentSettingsPage() {
                     />
                     <NumberInput
                       label="Max defaults before action"
-                      value={penalties.max_defaults_before_removal}
+                      value={penalties?.max_defaults_before_removal || 0}
                       onChange={(v) =>
                         updatePenalties({ max_defaults_before_removal: v })
                       }
@@ -1002,7 +934,7 @@ export default function AdminPaymentSettingsPage() {
                     <ToggleRow
                       label="Freeze account on default"
                       description="Prevent withdrawals and new circle joins when a member defaults"
-                      value={penalties.freeze_on_default}
+                      value={penalties?.freeze_on_default || false}
                       onChange={(v) =>
                         updatePenalties({ freeze_on_default: v })
                       }
@@ -1010,7 +942,7 @@ export default function AdminPaymentSettingsPage() {
                     <ToggleRow
                       label="Auto-remove on max defaults"
                       description="Automatically remove member from circle when default limit is hit"
-                      value={penalties.auto_remove_on_default}
+                      value={penalties?.auto_remove_on_default || false}
                       onChange={(v) =>
                         updatePenalties({ auto_remove_on_default: v })
                       }
@@ -1039,17 +971,19 @@ export default function AdminPaymentSettingsPage() {
                       icon={CreditCard}
                       label="Debit Card"
                       description="Visa, Mastercard & Verve. Instant processing."
-                      enabled={methods.card}
-                      onToggle={() => updateMethods({ card: !methods.card })}
+                      enabled={methods?.card || false}
+                      onToggle={() => updateMethods({ card: !methods?.card })}
                       color="bg-violet-50 text-violet-700"
                     />
                     <MethodCard
                       icon={Building2}
                       label="Bank Transfer"
                       description="Virtual account. Auto-credited on receipt."
-                      enabled={methods.bank_transfer}
+                      enabled={methods?.bank_transfer || false}
                       onToggle={() =>
-                        updateMethods({ bank_transfer: !methods.bank_transfer })
+                        updateMethods({
+                          bank_transfer: !methods?.bank_transfer,
+                        })
                       }
                       color="bg-emerald-50 text-emerald-700"
                     />
@@ -1057,17 +991,17 @@ export default function AdminPaymentSettingsPage() {
                       icon={Smartphone}
                       label="USSD"
                       description="Dial codes from any registered phone line."
-                      enabled={methods.ussd}
-                      onToggle={() => updateMethods({ ussd: !methods.ussd })}
+                      enabled={methods?.ussd || false}
+                      onToggle={() => updateMethods({ ussd: !methods?.ussd })}
                       color="bg-amber-50 text-amber-700"
                     />
                     <MethodCard
                       icon={Wallet}
                       label="Wallet Balance"
                       description="Pay contributions from available wallet."
-                      enabled={methods.wallet}
+                      enabled={methods?.wallet || false}
                       onToggle={() =>
-                        updateMethods({ wallet: !methods.wallet })
+                        updateMethods({ wallet: !methods?.wallet })
                       }
                       color="bg-blue-50 text-blue-700"
                     />
@@ -1075,9 +1009,9 @@ export default function AdminPaymentSettingsPage() {
                       icon={Banknote}
                       label="Mobile Money"
                       description="Opay, PalmPay and other mobile wallets."
-                      enabled={methods.mobile_money}
+                      enabled={methods?.mobile_money || false}
                       onToggle={() =>
-                        updateMethods({ mobile_money: !methods.mobile_money })
+                        updateMethods({ mobile_money: !methods?.mobile_money })
                       }
                       color="bg-zinc-100 text-zinc-600"
                     />
@@ -1114,7 +1048,7 @@ export default function AdminPaymentSettingsPage() {
                         <ProviderBadge
                           key={p}
                           name={p}
-                          selected={provider.default_provider === p}
+                          selected={provider?.default_provider === p}
                           onClick={() =>
                             updateProvider({ default_provider: p })
                           }
@@ -1139,12 +1073,12 @@ export default function AdminPaymentSettingsPage() {
                       <ToggleRow
                         label="Enable auto-failover"
                         description="Automatically route to fallback provider when success rate drops below threshold"
-                        value={provider.auto_failover}
+                        value={provider?.auto_failover || false}
                         onChange={(v) => updateProvider({ auto_failover: v })}
                       />
                     </div>
 
-                    {provider.auto_failover && (
+                    {provider?.auto_failover && (
                       <>
                         <div>
                           <p className="text-[12px] font-semibold text-zinc-500 uppercase tracking-wide mb-3">
@@ -1159,12 +1093,12 @@ export default function AdminPaymentSettingsPage() {
                                 "none",
                               ] as const
                             )
-                              .filter((p) => p !== provider.default_provider)
+                              .filter((p) => p !== provider?.default_provider)
                               .map((p) => (
                                 <ProviderBadge
                                   key={p}
                                   name={p}
-                                  selected={provider.fallback_provider === p}
+                                  selected={provider?.fallback_provider === p}
                                   onClick={() =>
                                     updateProvider({ fallback_provider: p })
                                   }
@@ -1175,7 +1109,7 @@ export default function AdminPaymentSettingsPage() {
 
                         <NumberInput
                           label="Failover threshold (%)"
-                          value={provider.failover_threshold_pct}
+                          value={provider?.failover_threshold_pct}
                           onChange={(v) =>
                             updateProvider({ failover_threshold_pct: v })
                           }
