@@ -1,10 +1,15 @@
 // lib/providers/auth.tsx
 "use client";
 
+import "../auth.bootstrap";
 import { useEffect, useState } from "react";
 import { Auth } from "@/lib/auth";
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isMounted, setIsMounted] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
@@ -18,10 +23,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     });
   }, []);
 
-  // Return nothing (or a strict monochromatic loading skeleton) while server-rendered 
+  // Return nothing (or a strict monochromatic loading skeleton) while server-rendered
   // HTML is matching the client DOM to prevent hydration crashes.
   if (!isMounted) {
-    return null; 
+    return null;
   }
 
   // Optional: You can render a global loading spinner here while Auth.ready() resolves

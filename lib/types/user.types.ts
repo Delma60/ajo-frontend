@@ -18,6 +18,8 @@ export interface IUser {
   balance: IBalance
   referral_count: number;
   referral_code: string;
+  isVerified: boolean;
+
   status: "active" | 'pending' | "suspended" | "banned";
   transactions:ITransaction[];
   inviteSent:IInvite[];
@@ -34,7 +36,6 @@ export interface IUser {
 
   }
   kyc_level: string;
-  isVerified: boolean;
   created_at: Date | string;
   created_at_human: string;
   notifications:INotification[]

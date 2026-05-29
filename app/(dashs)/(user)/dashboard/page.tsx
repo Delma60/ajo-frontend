@@ -14,15 +14,7 @@ import {
   CardDivider,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableEmpty,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import {
   Wallet,
   Users,
@@ -47,69 +39,36 @@ import { formatNaira } from "@/lib/utils";
 import { ITransaction } from "@/lib/types/transaction.types";
 import { IGroup } from "@/lib/types/group.types";
 import { GreetingSection } from "@/components/greeting-section";
-import { BalanceCard } from "@/balance-card";
-
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  color = "emerald",
-  badge,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  sub?: string;
-  color?: "emerald" | "amber" | "blue" | "rose";
-  badge?: string;
-}) {
-  const colorMap = {
-    emerald: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
-    blue: "bg-blue-50 text-blue-700",
-    rose: "bg-rose-50 text-rose-700",
-  };
-
-  return (
-    <Card variant="default" className="hover:shadow-sm transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <span
-            className={`inline-flex items-center justify-center w-9 h-9 rounded-xl ${colorMap[color]}`}
-          >
-            <Icon className="w-4.5 h-4.5" size={18} />
-          </span>
-          {badge && (
-            <CardBadge color="gray" dot>
-              {badge}
-            </CardBadge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p
-          className="text-2xl font-bold text-zinc-900 tracking-tight"
-          style={{ fontFamily: "Georgia, serif" }}
-        >
-          {value}
-        </p>
-        <p className="text-xs text-zinc-400 mt-0.5 font-medium uppercase tracking-wide">
-          {label}
-        </p>
-        {sub && <p className="text-xs text-zinc-500 mt-1">{sub}</p>}
-      </CardContent>
-    </Card>
-  );
-}
+import { BalanceCard } from "@/components/balance-card";
+import { StatCard } from "@/components/stat-card";
+import { TransactionsSection } from "@/components/dashboard/transaction";
 
 function QuickActions() {
   const actions = [
-    { icon: CircleDollarSign, label: "Deposit", color: "emerald" as const, href:"/deposit" },
-    { icon: ArrowUpRight, label: "Withdraw", color: "amber" as const, href:"/withdraw" },
-    { icon: Users, label: "New Circle", color: "blue" as const, href:"/groups/create" },
-    { icon: Layers, label: "History", color: "rose" as const, href:"/transactions/history" },
+    {
+      icon: CircleDollarSign,
+      label: "Deposit",
+      color: "emerald" as const,
+      href: "/deposit",
+    },
+    {
+      icon: ArrowUpRight,
+      label: "Withdraw",
+      color: "amber" as const,
+      href: "/withdraw",
+    },
+    {
+      icon: Users,
+      label: "New Circle",
+      color: "blue" as const,
+      href: "/groups/create",
+    },
+    {
+      icon: Layers,
+      label: "History",
+      color: "rose" as const,
+      href: "/transactions/history",
+    },
   ];
 
   return (
@@ -127,7 +86,7 @@ function QuickActions() {
               rose: "bg-rose-50 text-rose-700 hover:bg-rose-100",
             };
             return (
-               <Link href={href} key={label}>
+              <Link href={href} key={label}>
                 <button
                   className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${colorMap[color]} cursor-pointer`}
                 >
@@ -146,10 +105,13 @@ function QuickActions() {
 function CirclesSection({
   groups = [],
   id: currentId,
+  loading = false,
 }: {
   groups?: IGroup[];
-  id: IUser["id"];
+  id: IUser["id"] | undefined;
+  loading?: boolean;
 }) {
+  if (loading) return <CirclesSectionSkeleton />;
   const myTurn = groups
     .flatMap((group) => group.members)
     .find((mem) => mem.id === currentId)?.myTurn;
@@ -270,77 +232,44 @@ function CirclesSection({
   );
 }
 
-function TransactionsSection({
-  transactions = [],
-}: {
-  transactions: ITransaction[];
-}) {
+function CirclesSectionSkeleton() {
   return (
-    <Card variant="default">
+    <Card variant="default" className="animate-pulse">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription className="mt-0.5">
-              Deposits, withdrawals &amp; contributions
-            </CardDescription>
+          <div className="space-y-2">
+            <div className="h-4 w-32 bg-zinc-200 rounded-md" />
+            <div className="h-3 w-48 bg-zinc-100 rounded-md" />
           </div>
-          <Link href="/transactions/history" className="ml-auto">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="rounded-lg text-emerald-700 hover:text-emerald-800"
-            >
-              View all <ChevronRight size={14} className="ml-1" />
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <div className="h-8 w-16 bg-zinc-100 rounded-lg" />
+            <div className="h-8 w-16 bg-zinc-100 rounded-lg" />
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Transaction</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead align="right">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.length === 0 ? (
-              <TableEmpty
-                colSpan={4}
-                message="No transactions yet. Make your first deposit to get started."
-              />
-            ) : (
-              transactions.map((tx, i) => (
-                <TableRow key={i} hoverable>
-                  {/* <TableCell>{tx.description}</TableCell> */}
-                  <TableCell mono>{tx.amount}</TableCell>
-                  <TableCell muted>{tx.created_at}</TableCell>
-                  <TableCell align="right">
-                    <CardBadge
-                      color={
-                        tx.status === "success"
-                          ? "green"
-                          : tx.status === "pending"
-                            ? "amber"
-                            : "red"
-                      }
-                      dot
-                    >
-                      {tx.status}
-                    </CardBadge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      <CardDivider />
+      <CardContent className="pt-0 px-0">
+        <ul className="divide-y divide-zinc-50">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="flex items-center gap-4 px-5 py-4">
+              <div className="w-10 h-10 rounded-xl bg-zinc-100 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-3.5 w-28 bg-zinc-100 rounded" />
+                  <div className="h-4 w-12 bg-zinc-50 rounded-full" />
+                </div>
+                <div className="h-2 w-36 bg-zinc-50 rounded" />
+                <div className="h-1.5 w-full bg-zinc-50 rounded-full mt-2" />
+              </div>
+              <div className="h-4 w-4 bg-zinc-50 rounded-full shrink-0" />
+            </li>
+          ))}
+        </ul>
       </CardContent>
     </Card>
   );
 }
+
 
 function NoticeCard() {
   return (
@@ -368,19 +297,25 @@ function NoticeCard() {
   );
 }
 
-function ReferralCard({ code }: { code: string }) {
+function ReferralCard({
+  user,
+  referral_amount = 500,
+}: {
+  user: IUser | null;
+  referral_amount?: number;
+}) {
   return (
     <Card variant="default">
       <CardHeader>
         <CardTitle>Refer &amp; Earn</CardTitle>
         <CardDescription>
-          Invite friends and earn ₦500 per referral
+          Invite friends and earn {formatNaira(referral_amount)} per referral
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-2 bg-zinc-50 rounded-xl px-3 py-2.5 border border-zinc-200">
           <code className="text-sm font-mono font-semibold text-emerald-700 flex-1">
-            {code}
+            {user?.referral_code ?? "MT-XXXX"}
           </code>
           <button className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors">
             Copy
@@ -388,11 +323,15 @@ function ReferralCard({ code }: { code: string }) {
         </div>
         <div className="flex items-center justify-between mt-4 text-sm">
           <span className="text-zinc-500">Total referred</span>
-          <span className="font-semibold text-zinc-900">0 friends</span>
+          <span className="font-semibold text-zinc-900">
+            {(user as any)?.referrals_count ?? 0} friends
+          </span>
         </div>
         <div className="flex items-center justify-between mt-1 text-sm">
           <span className="text-zinc-500">Earned</span>
-          <span className="font-semibold text-emerald-700">₦0.00</span>
+          <span className="font-semibold text-emerald-700">
+            {formatNaira(Number((user as any)?.referral_earnings ?? 0))}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -403,10 +342,23 @@ function ReferralCard({ code }: { code: string }) {
 
 export default function Dashboard() {
   const [user, setUser] = useState<IUser | null>(null);
+
   useEffect(() => {
-    setUser(Auth.user() as unknown as IUser);
+    // 1. Immediately set the cached user for instant rendering
+    const cachedUser = Auth.user() as unknown as IUser;
+    if (cachedUser) {
+      setUser(cachedUser);
+    }
+
+    // 2. Silently fetch fresh data from the backend to catch any recent deposits/changes
+    // refreshUser() forces a network call and bypasses the 5-minute cache
+    Auth.refreshUser().then((freshUser) => {
+      if (freshUser) {
+        setUser(freshUser as unknown as IUser);
+      }
+    });
   }, []);
-  const referralCode = user?.referral_code ?? "MT-XXXX";
+
   const isVerified = Boolean((user as any)?.isVerified);
   const activeGroup = user?.groups?.filter((g) => g.status === "active").length;
 
@@ -416,7 +368,7 @@ export default function Dashboard() {
         {/* { JSON.stringify(user) } */}
 
         {/* Greeting */}
-        <GreetingSection name={user?.name || "Friend"} />
+        <GreetingSection name={user?.name as string} loading={!user} />
 
         {/* Verification notice */}
         {!isVerified && <NoticeCard />}
@@ -424,7 +376,7 @@ export default function Dashboard() {
         {/* Top metric row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Balance card spans 2 cols */}
-          {user && <BalanceCard {...user} />}
+          <BalanceCard balance={user?.balance as IBalance} loading={!user} />
 
           <StatCard
             icon={Users}
@@ -432,6 +384,7 @@ export default function Dashboard() {
             value={String(user?.groups?.length ?? 0)}
             sub={`${String(user?.inviteReceived?.length || 0)} pending invites`}
             color="blue"
+            loading={!user}
           />
 
           <StatCard
@@ -449,6 +402,7 @@ export default function Dashboard() {
               activeGroup ? `${activeGroup} active cycles` : "No active cycles"
             }
             color="emerald"
+            loading={!user}
           />
         </div>
 
@@ -461,10 +415,15 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: circles + transactions (2/3) */}
           <div className="lg:col-span-2 space-y-6">
-            {user && <CirclesSection groups={user.groups ?? []} id={user.id} />}
-            {user && (
-              <TransactionsSection transactions={user.transactions ?? []} />
-            )}
+            <CirclesSection
+              groups={user?.groups ?? []}
+              id={user?.id}
+              loading={!user}
+            />
+            <TransactionsSection
+              transactions={user?.transactions ?? []}
+              loading={!user}
+            />
           </div>
 
           {/* Right sidebar (1/3) */}
@@ -474,7 +433,7 @@ export default function Dashboard() {
               <QuickActions />
             </div>
 
-            <ReferralCard code={referralCode} />
+            <ReferralCard user={user} referral_amount={500} />
 
             {/* Summary stats */}
             <Card variant="flat">
@@ -484,19 +443,25 @@ export default function Dashboard() {
               <CardContent className="space-y-3">
                 <CardStat
                   label="Total Contributed"
-                  value="₦0.00"
+                  value={formatNaira(
+                    Number((user as any)?.total_contributed ?? 0),
+                  )}
                   sub="All time"
                 />
                 <CardDivider className="mx-0" />
                 <CardStat
                   label="Total Received"
-                  value="₦0.00"
+                  value={formatNaira(
+                    Number((user as any)?.total_received ?? 0),
+                  )}
                   sub="Payouts received"
                 />
                 <CardDivider className="mx-0" />
                 <CardStat
                   label="Referral Earnings"
-                  value="₦0.00"
+                  value={formatNaira(
+                    Number((user as any)?.referral_earnings ?? 0),
+                  )}
                   sub="Pending cashout"
                 />
               </CardContent>

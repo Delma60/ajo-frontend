@@ -483,6 +483,7 @@ function WalletPanel({ amount }: { amount: number }) {
         user_id: userId,
       });
       if (res.ok) {
+        await Auth.refresh();
         setDone(true);
       } else {
         setError(res.message || "Transfer failed.");
