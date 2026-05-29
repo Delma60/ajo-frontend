@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Auth } from "./auth";
+import { JwtUtils } from "./jwt-utils";
 import { HttpClientConfig, HttpMethod, IHttpResponse, QueryParams, RequestInterceptor, ResponseInterceptor, RetryConfig } from "./types/http.types";
 
 
@@ -298,12 +299,13 @@ export class HttpClient {
 export const HTTPS = new HttpClient({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
     timeoutMs: 60_000,
+    credentials: "include",
     retry: {
         maxAttempts: 2,
         baseDelayMs: 300,
     },
 })
-    .addRequestInterceptor((init, url) => {
+    .addRequestInterceptor(async (init, url) => {
         // Safely cast headers since we strictly use Record<string, string> in HttpClient
         const headers = (init.headers as Record<string, string>) || {};
 
@@ -314,31 +316,31 @@ export const HTTPS = new HttpClient({
             return init;
         }
 
-        // 2. Only read from Auth.token() if no Authorization header is already stated
-        if (!headers["Authorization"] && !headers["authorization"]) {
-            const token = Auth.token();
+        // 2. Check if token is near expiration and refresh if needed
+        let token = Auth.token && typeof Auth.token === "function" ? Auth.token() : null;
+        if (token) {
+            // If token is about to expire (e.g. < 60s), refresh it
+            if (typeof JwtUtils !== "undefined" && JwtUtils.tokenExpiresIn(token) < 60) {
+                await Auth.refresh();
+                token = Auth.token && typeof Auth.token === "function" ? Auth.token() : null;
+            }
             if (token) {
-                init.headers = {
-                    ...headers,
-                    Authorization: `Bearer ${token}`,
-                };
+                headers["Authorization"] = `Bearer ${token}`;
             }
         }
-        
+        init.headers = headers;
         return init;
     })
     .addResponseInterceptor((response) => {
         
         if (response.status === 401) {
-            console.warn("Session expired. Redirecting to login…");
-            // window.location.href = "/login";
+            window.location.href = "/login";
         }
         if (response.status === 400) {
             console.log("Error occurred in backend")
         }
         if (response.status === 419) {
-            console.warn("CSRF token mismatch. Refreshing…");
-            // window.location.reload();
+            window.location.reload();
         }
         
     });

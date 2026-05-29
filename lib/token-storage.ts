@@ -110,7 +110,7 @@ export class MemoryDriver implements ITokenDriver {
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
 export function resolveDriver(name: StorageDriver): ITokenDriver {
-    if (name === "localStorage") return new LocalStorageDriver();
+    // if (name === "localStorage") return new LocalStorageDriver();
     if (name === "memory") return new MemoryDriver();
     return new CookieDriver();
 }

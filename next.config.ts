@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: "bottom-right",
   },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? {
+      exclude: ["error"],
+    } : false,
+  },
 };
 
 export default nextConfig;

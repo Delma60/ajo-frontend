@@ -5,6 +5,7 @@ import { HTTPS, HttpError, type HttpClient } from "./http";
 import { Role } from "./role";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { Cache } from "./cache";
+import { clearTokensSecurely, storeTokensSecurely } from "@/app/actions/auth-actions";
 
 export class Guard<TUser extends AuthUser = AuthUser> {
     private readonly http: HttpClient;
@@ -182,6 +183,8 @@ export class Guard<TUser extends AuthUser = AuthUser> {
     }
     public async attempt(credentials: Credentials): Promise<boolean> {
         try {
+            // Always fetch CSRF cookie before login
+            await this.http.get("/sanctum/csrf-cookie");
             const res = await this.http.post<LoginResponse>(this.cfg.endpoints.login, credentials);
             // console.log({attemp_res: res.data, url: this.cfg.endpoints.login})
             if (!res.data?.token) return false;
@@ -196,6 +199,8 @@ export class Guard<TUser extends AuthUser = AuthUser> {
         }
     }
     public async attemptOrFail(credentials: Credentials): Promise<TUser> {
+        // Always fetch CSRF cookie before login
+        await this.http.get("/sanctum/csrf-cookie");
         const res = await this.http.post<LoginResponse>(this.cfg.endpoints.login, credentials);
         if (!res.data?.token) {
             throw new HttpError({ ...res, data: null });
@@ -223,10 +228,10 @@ export class Guard<TUser extends AuthUser = AuthUser> {
         if (callServer) {
             const t = this.token();
             if (t) {
-                await this.http.withToken(t, this.cfg.tokenType).post(this.cfg.endpoints.logout).catch(() => { });
+                await this.http.post(this.cfg.endpoints.logout).catch(() => { });
             }
         }
-        this.clearTokens();
+        await clearTokensSecurely();
         this._setUser(null);
         await this.cfg.events.onLogout?.(previousUser);
     }
@@ -282,9 +287,12 @@ export class Guard<TUser extends AuthUser = AuthUser> {
     private async _applyLogin(loginData: LoginResponse): Promise<void> {
         const oldCacheKey = this._userCacheKey();
         if (oldCacheKey) Cache.forget(oldCacheKey);
-
-        this.setToken(loginData.token, loginData.expires_in);
-        if (loginData.refresh_token) this.setRefreshToken(loginData.refresh_token);
+        await storeTokensSecurely(
+            loginData.token,
+            loginData.refresh_token,
+            loginData.expires_in ?? this.cfg.cookieExpiryDays * 86400
+        )
+        
         if (loginData.user) {
             this._setUser(loginData.user as TUser);
         } else {
